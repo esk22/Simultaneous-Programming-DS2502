@@ -3,5 +3,5 @@
 OUR SOURCE CODE BANK !
 
 DataManagerWindow - Graphical User Interface source code, VS 2012 or later is required for running the code
-DS2502Manager - Command Line Interface framework
+DS2502Manager - Command Line Interface framework,
 project-code - SPIN source code
