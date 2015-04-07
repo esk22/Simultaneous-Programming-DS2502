@@ -1,4 +1,4 @@
-﻿//
+﻿// Filename: HelpWindow.cs
 // Author: Arun Rai - Virginia Tech
 //
 using System;
@@ -22,7 +22,7 @@ namespace DataManagerWindow
             this.MaximizeBox = false;
             this.MinimizeBox = false;
             this.HelpText.ReadOnly = true;
-            this.HelpText.Font = new System.Drawing.Font("Times New Roman", 10F, FontStyle.Regular);
+            this.HelpText.Font = new System.Drawing.Font("Arial", 8F, FontStyle.Regular);
             DisplayHelpText(tagPage);
         }
 
@@ -49,7 +49,7 @@ namespace DataManagerWindow
                 this.HelpText.AppendText("- For each Tag Number, Catalog Number must be 8 or more characters long.");
                 this.HelpText.AppendText(" The characters must include upper case letters and digits only.\r\n");
                 this.HelpText.AppendText("\r\n");
-                this.HelpText.AppendText("- Click OK to continue or Cancel to cancel the change.");
+                this.HelpText.AppendText("- Click OK to continue or Cancel to cancel.");
                 
             }
             else if (tagPage == 2)

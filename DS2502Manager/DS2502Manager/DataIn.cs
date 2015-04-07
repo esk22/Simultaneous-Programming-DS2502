@@ -260,10 +260,10 @@ namespace DS2502Manager
         }
 
         //------------------------------------------------------------------------------------------------------------
-        // Function name: private static string RemoveExraWords(string input)
+        // Function name: private static string RemoveExtraWords(string input)
         // Description: Remove extra unwanted words from the string
         //------------------------------------------------------------------------------------------------------------
-        public string RemoveExraWords(string input)
+        public string RemoveExtraWords(string input)
         {
             string[] buffer = Regex.Split(input, "finished");
             string output = "";

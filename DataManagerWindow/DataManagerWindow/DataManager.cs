@@ -1,4 +1,4 @@
-﻿//
+﻿// Filename: DataManager.cs
 // Author: Arun Rai - Virginia Tech
 //
 using System;
@@ -17,12 +17,15 @@ namespace DataManagerWindow
 {
     public partial class DataManager : Form
     {
-        private static string[] BarcodeList;
-        private static string[] DsrList;
-        private static string[] CatalogNoList;
+        // Current data list (after user makes changes)
+        private static string[] UserChangedBarcode;
+        private static string[] UserChangedDSR;
+        private static string[] UserChangedCatalog;
+        // Previous data list when data is loaded from the ID Chips
         private static string[] BarcodeBuffer;
         private static string[] DsrBuffer;
         private static string[] CatalogNoBuffer;
+        // Other arrays
         private static bool[] CheckBoxBuffer;
         private static string[] HexList;
         private static string[] TagsDataBuffer;
@@ -33,13 +36,12 @@ namespace DataManagerWindow
         private static int ProgressMax;
         private static int[] DataReplacedCount;
         private static int[] remainedBytes;
-        private static string PORT;
-        // Create an instance of ParseComputeData class
+        private static string PORT; // Serial Port Name
+        // Create objects
         InputOutpuBytes compute;
         ComputeCRC8 crc;
-
         // Main function
-        public DataManager(SerialPort serialPort, string portName, string[] IDTagData)
+        public DataManager(SerialPort serialPort, string portName, string[] StrDataBytes)
         {
             InitializeComponent();
             InitLocalComponent();
@@ -51,12 +53,12 @@ namespace DataManagerWindow
             // ===== Serial Port name ========/
             PORT = portName;
             // Fill the ID Tag data buffer
-            InitDataBuffer(IDTagData);
+            InitDataBuffer(StrDataBytes);
             // Read data contents from the appropriate text boxes
             // - Barcode, DSR, and Catalog Number
             ReadDataFields();
             // Init Hex data column bar
-            HexDataColumnBar();
+            HexDataCountBar();
             tabControl1.Selecting += new TabControlCancelEventHandler(tabControl1_Selecting);
         }
 
@@ -109,6 +111,7 @@ namespace DataManagerWindow
             // Readonly Text boxes
             this.RecordList.ReadOnly = true;
             this.RecordListCRC.ReadOnly = true;
+            // Set color
             this.RecordList.BackColor = System.Drawing.SystemColors.Window;
             this.RecordListCRC.BackColor = System.Drawing.SystemColors.Window;
             // Column list initialization
@@ -126,13 +129,13 @@ namespace DataManagerWindow
             this.BarCRC.ReadOnly = true;
             // this.RecordList.ScrollBars = ScrollBars.Vertical;
 
-            // Instantiate classes
+            // Instantiate objects
             compute = new InputOutpuBytes();
             crc = new ComputeCRC8();
 
-            BarcodeList = new string[6];
-            DsrList = new string[6];
-            CatalogNoList = new string[6];
+            UserChangedBarcode = new string[6];
+            UserChangedDSR = new string[6];
+            UserChangedCatalog = new string[6];
             HexList = new string[128];
             BarcodeBuffer = new string[6];
             DsrBuffer = new string[6];
@@ -155,24 +158,24 @@ namespace DataManagerWindow
         }
 
         //-----------------------------------------------------------------------------------------------------------
-        // Function name: private void InitDataBuffer(string[] IDTagData)
+        // Function name: private void InitDataBuffer(string[] StrDataBytes)
         // Description: Fill the data buffer
         //-----------------------------------------------------------------------------------------------------------
-        private void InitDataBuffer(string[] IDTagData)
+        private void InitDataBuffer(string[] StrDataBytes)
         {
             DataFiledsEnable();
             bool DefaultText = false;
             // Fill data contents in the appropriate
             // text boxes - Barcode, DSR, and Catalog Number
-            for (int i = 1; i <= IDTagData.Length; i++)
+            for (int i = 1; i <= StrDataBytes.Length; i++)
             {
-                if (IDTagData[i - 1].Length > 1)
+                if (StrDataBytes[i - 1].Length > 1)
                 {
-                    TagsDataBuffer[i - 1] = compute.SpaceDelimitor(compute.RemoveExraWords(IDTagData[i - 1]));
+                    TagsDataBuffer[i - 1] = compute.SpaceDelimitor(compute.RemoveExtraWords(StrDataBytes[i - 1]));
                     if (!DefaultText)
                     {
-                        // MessageBox.Show(IDTagData[i - 1]);
-                        FillTextBox(TagsDataBuffer[i - 1]);
+                        // MessageBox.Show(StrDataBytes[i - 1]);
+                        DisplayHexDataTextBox(TagsDataBuffer[i - 1]);
                         compute.GetRecordList(TagsDataBuffer[i - 1], ref DataRecord);
                         DisplayDataRecord(DataRecord);
                         AutoChckRecordListTag(i);
@@ -180,14 +183,12 @@ namespace DataManagerWindow
                         DefaultText = true;
                         this.SerialNoLabel.Visible = true;
                     }
-                    FillDataFields(TagsDataBuffer[i - 1], i);
-                    // Enable the Tag select radio button
-                    // Init Tag list 
+                    ComputeDataFields(TagsDataBuffer[i - 1], i);
                 }
                 else
                 {
                     TagsDataBuffer[i - 1] = "";
-                    DataFieldsDisable(i);
+                    DisableEditDataTextBox(i);
                     // Disable tag select radio buttons
                     rTagSelectButtonDisable(i);
                 }
@@ -259,30 +260,30 @@ namespace DataManagerWindow
         }
 
         //-----------------------------------------------------------------------------------------------------------
-        // Function name: private void HexDataColumnBar()
+        // Function name: private void HexDataCountBar()
         // Description: Initialize and format the coloum list
         //              for displaying data bytes as hex values in the text box
         //-----------------------------------------------------------------------------------------------------------
-        private void HexDataColumnBar()
+        private void HexDataCountBar()
         {
-            this.ColumnBar.Clear();
-            this.ColumnBar.Font = new System.Drawing.Font("Arial", 9F, FontStyle.Bold);
-            this.ColumnBar.AppendText(" ");
-            this.ColumnBar.AppendText("  Addr");
-            this.ColumnBar.AppendText("         ");
+            this.HexCountBar.Clear();
+            this.HexCountBar.Font = new System.Drawing.Font("Arial", 9F, FontStyle.Bold);
+            this.HexCountBar.AppendText(" ");
+            this.HexCountBar.AppendText("  Addr");
+            this.HexCountBar.AppendText("         ");
             for(int i = 0; i < 8; i++)
             {
-                ColumnBar.AppendText("0x" + i.ToString("X2"));
+                HexCountBar.AppendText("0x" + i.ToString("X2"));
                 if (i == 1)
-                    ColumnBar.AppendText("      ");
+                    HexCountBar.AppendText("      ");
                 else if (i == 2)
-                    ColumnBar.AppendText("      ");
+                    HexCountBar.AppendText("      ");
                 else if (i == 3)
-                    ColumnBar.AppendText("      ");
+                    HexCountBar.AppendText("      ");
                 else
-                    ColumnBar.AppendText("     ");
+                    HexCountBar.AppendText("     ");
             }
-            this.ColumnBar.ReadOnly = true;
+            this.HexCountBar.ReadOnly = true;
         }
 
         //-----------------------------------------------------------------------------------------------------------
@@ -325,7 +326,7 @@ namespace DataManagerWindow
 
         //-----------------------------------------------------------------------------------------------------------
         // Function name: private static void serialPortInit(SerialPort serialPort1)
-        // Description: Intialization of the serial port.
+        // Description: Serial Port intialization
         //-----------------------------------------------------------------------------------------------------------
         private static void serialPortInit(SerialPort serialPort1)
         {
@@ -363,8 +364,7 @@ namespace DataManagerWindow
             DsrBuffer[3] = DsrText4.Text;
             DsrBuffer[4] = DsrText5.Text;
             DsrBuffer[5] = DsrText6.Text;
-           
-                
+                         
             // Read Catalog Number text boxesand store texts (data)
             // in the temp buffer
             CatalogNoBuffer[0] = CatalogText1.Text;
@@ -385,88 +385,100 @@ namespace DataManagerWindow
         private void ReadDataFieldsToValidate()
         {
             // Read and store the barcode values
-            BarcodeList[0] = BarcodeText1.Text;
-            BarcodeList[1] = BarcodeText2.Text;
-            BarcodeList[2] = BarcodeText3.Text;
-            BarcodeList[3] = BarcodeText4.Text;
-            BarcodeList[4] = BarcodeText5.Text;
-            BarcodeList[5] = BarcodeText6.Text;
+            UserChangedBarcode[0] = BarcodeText1.Text;
+            UserChangedBarcode[1] = BarcodeText2.Text;
+            UserChangedBarcode[2] = BarcodeText3.Text;
+            UserChangedBarcode[3] = BarcodeText4.Text;
+            UserChangedBarcode[4] = BarcodeText5.Text;
+            UserChangedBarcode[5] = BarcodeText6.Text;
 
             // Read and store DSR values
-            DsrList[0] = DsrText1.Text;
-            DsrList[1] = DsrText2.Text;
-            DsrList[2] = DsrText3.Text;
-            DsrList[3] = DsrText4.Text;
-            DsrList[4] = DsrText5.Text;
-            DsrList[5] = DsrText6.Text;
+            UserChangedDSR[0] = DsrText1.Text;
+            UserChangedDSR[1] = DsrText2.Text;
+            UserChangedDSR[2] = DsrText3.Text;
+            UserChangedDSR[3] = DsrText4.Text;
+            UserChangedDSR[4] = DsrText5.Text;
+            UserChangedDSR[5] = DsrText6.Text;
 
             // Read and store Catalog number values
-            CatalogNoList[0] = CatalogText1.Text;
-            CatalogNoList[1] = CatalogText2.Text;
-            CatalogNoList[2] = CatalogText3.Text;
-            CatalogNoList[3] = CatalogText4.Text;
-            CatalogNoList[4] = CatalogText5.Text;
-            CatalogNoList[5] = CatalogText6.Text;
+            UserChangedCatalog[0] = CatalogText1.Text;
+            UserChangedCatalog[1] = CatalogText2.Text;
+            UserChangedCatalog[2] = CatalogText3.Text;
+            UserChangedCatalog[3] = CatalogText4.Text;
+            UserChangedCatalog[4] = CatalogText5.Text;
+            UserChangedCatalog[5] = CatalogText6.Text;
         }
 
         //-----------------------------------------------------------------------------------------------------------
-        // Function name: private void FillTextBox(string Data)
+        // Function name: private void DisplayHexDataTextBox(string Data)
         // Description: Display the ID Tag EPROM contents as hex values in the text box
         //              Each data byte contains two hex values, and each data byte is
         //              stored in an EPROM address of the ID Tag. The text box displays 128
         //              data bytes in the text box.
         //-----------------------------------------------------------------------------------------------------------
-        private void FillTextBox(string Data, int tag = -1)
+        private void DisplayHexDataTextBox(string Data, int tag = -1)
         {
             int used = 0, remaining = 0;
-            int count1 = 0, count2 = 0, SerialCount = 0, AddCounter = 0;
+            int HexCount = 0, ByteCount = 0, SerialHexCount = 0, LeftBytePosition = 0;
             string st = "", SerialNumber = "";
-            string DataRow = "   ";
-            DataRow += "0x00";
-            DataRow += "           ";
+            string EightDataBytes = "   ";
+            EightDataBytes += "0x00";
+            EightDataBytes += "           ";
             for (int i = 0; i < Data.Length - 3; i++)
             {
                 if (char.IsLetterOrDigit(Data[i]))
                 {
-                    SerialCount++;
-                    if (SerialCount <= 16)
+                    SerialHexCount++;
+                    if (SerialHexCount <= 16)
                     {
                         SerialNumber += Data[i];
                     }
                     else
                     {
-                        count1++;
-                        if (count1 <= 2)
+                        HexCount++;
+                        if (HexCount <= 2)
                         {
                             st += Data[i];
-                            if (count1 == 2)
+                            if (HexCount == 2)
                             {
                                 if (st == "FF")
                                     remaining++;
                                 else
                                     used++;
-                                count2++; count1 = 0;
-                                DataRow += st; AddCounter++;
-                                DataRow += "           "; st = "";
-                                if (count2 == 8)
+                                ByteCount++; HexCount = 0;
+                                EightDataBytes += st; LeftBytePosition++;
+                                EightDataBytes += "           "; st = "";
+                                if (ByteCount == 8)
                                 {
-                                    HexDataTextBox.AppendText(DataRow);
+                                    HexDataTextBox.AppendText(EightDataBytes);
                                     this.HexDataTextBox.AppendText("\n");
-                                    DataRow = "   ";
-                                    DataRow += "0x" + AddCounter.ToString("X2");
-                                    DataRow += "           ";
-                                    count2 = 0;
+                                    EightDataBytes = "   ";
+                                    EightDataBytes += "0x" + LeftBytePosition.ToString("X2");
+                                    EightDataBytes += "           ";
+                                    ByteCount = 0;
                                 }
                             }
                         }
                     }
                 }
             }
+            DisplaySerialNumber(SerialNumber);
+            DisplayUsedRemainingBytes(used, remaining);           
+        }
+
+        // Display ID Chip Serial Number
+        private void DisplaySerialNumber(string SerialNumber)
+        {
             // Auto scroll up
             HexDataTextBox.SelectionStart = 0;
             HexDataTextBox.ScrollToCaret();
             // Display the ID Chip Serial Number
             this.SerialNoLabel.Text = "ID Chip Serial No.: " + SerialNumber;
+        }
+
+        // Display used and remaining bytes
+        private void DisplayUsedRemainingBytes(int used, int remaining)
+        {
             string usedStr = (used > 9) ? used.ToString() + " bytes used" : used.ToString() + " byte used";
             string remainStr = (remaining > 9) ? remaining.ToString() + " bytes remaining" : remaining.ToString() + " byte remaining";
             this.DataBytes.Text = "|      " + usedStr + " (" + remainStr + ")";
@@ -481,28 +493,29 @@ namespace DataManagerWindow
         private void ParseStrToData(string Data, int tag = -1)
         {
             // MessageBox.Show(Data);
-            int count1 = 0, SerialCount = 0, j = 0, remaining = 0;
-            string st = "";
+            int HexCount = 0, SerialHexCount = 0, BytePos = 0;
+            int remaining = 0;
+            string StrByte = "";
             for (int i = 0; i < Data.Length - 4; i++)
             {
                 if (char.IsLetterOrDigit(Data[i]))
                 {
-                    SerialCount++;
-                    if (SerialCount > 16)
+                    SerialHexCount++;
+                    if (SerialHexCount > 16)
                     {
-                        count1++;
-                        if (count1 <= 2)
+                        HexCount++;
+                        if (HexCount <= 2)
                         {
-                            st += Data[i];
-                            if (count1 == 2)
+                            StrByte += Data[i];
+                            if (HexCount == 2)
                             {
-                                if (st == "FF")
+                                if (StrByte == "FF")
                                     remaining++;
-                                if(j < 128)
-                                    HexList[j] = st; 
-                                j++;
-                                st = "";
-                                count1 = 0;
+                                if (BytePos < 128)
+                                    HexList[BytePos] = StrByte;
+                                BytePos++;
+                                StrByte = "";
+                                HexCount = 0;
                             }
                         }
                     }
@@ -568,14 +581,14 @@ namespace DataManagerWindow
         }
 
         //-----------------------------------------------------------------------------------------------------------
-        // Function name: private void FillDataFields()
+        // Function name: private void ComputeDataFields()
         // Description: - Call function to parse string to data values: one data byte
         //                contains two hex values that comes from an address of the 
         //                ID Tag EPROM ( Example: 09 is a data byte)
         //              - Identify and combine the data bytes to appropriate data types
         //                such as Barcode, DSR, and Catalog Number
         //-----------------------------------------------------------------------------------------------------------
-        private void FillDataFields(string GetData, int tag)
+        private void ComputeDataFields(string GetData, int tag)
         {
             ParseStrToData(GetData, tag - 1);
             int barcodePos = 0, DsrPos = 0, CatalogPos = 0;
@@ -614,15 +627,15 @@ namespace DataManagerWindow
                 }
             }
                 
-            BarcodeList[barcodeCounter] = barcodeStr;
-            DsrList[DsrCounter] = DsrStr;
+            UserChangedBarcode[barcodeCounter] = barcodeStr;
+            UserChangedDSR[DsrCounter] = DsrStr;
             // MessageBox.Show(DsrStr);
             string DataReplaced = "";
             // MessageBox.Show(CatalogStr);
-            CatalogNoList[CatalogCounter] = compute.GetCatalogNumber(CatalogStr, ref DataReplaced);
+            UserChangedCatalog[CatalogCounter] = compute.GetCatalogNumber(CatalogStr, ref DataReplaced);
             ReplacedDataCountInCatalog(DataReplaced, tag);
-            // Call function to fill the appropriate data fields
-            Fill(barcodeStr, DsrStr, CatalogNoList[CatalogCounter], tag);
+            // Display data in the Edit Data text boxes
+            DisplayEditDataTextBox(barcodeStr, DsrStr, UserChangedCatalog[CatalogCounter], tag);
         }
 
         //-----------------------------------------------------------------------------------------------------------
@@ -670,7 +683,7 @@ namespace DataManagerWindow
         // Description: Fill the data fields - Barcode, DSR, and Catalog Number in the 
         //              appropriate text boxes.
         //-----------------------------------------------------------------------------------------------------------
-        private void Fill(string barcode, string dsr, string catalog, int tag)
+        private void DisplayEditDataTextBox(string barcode, string dsr, string catalog, int tag)
         {
             if (tag == 1)
             {
@@ -827,7 +840,7 @@ namespace DataManagerWindow
         }
 
         // Text box control of the data fields
-        private void DataFieldsDisable(int tag)
+        private void DisableEditDataTextBox(int tag)
         {
             if (tag == 1)
             {
@@ -905,13 +918,13 @@ namespace DataManagerWindow
         private bool CheckInputs(int i)
         {
             string ErrString = "In Tag Number " + (i + 1).ToString() + " :";
-            if ((BarcodeList[i].Length > 0) && (BarcodeBuffer[i] != BarcodeList[i]) &&
-                (BarcodeList[i].Length < 6 || BarcodeList[i].Length > 7))
+            if ((UserChangedBarcode[i].Length > 0) && (BarcodeBuffer[i] != UserChangedBarcode[i]) &&
+                (UserChangedBarcode[i].Length < 6 || UserChangedBarcode[i].Length > 7))
             {
-                if (BarcodeList[i].Length <= 5 && BarcodeList[i].Length > 0)
+                if (UserChangedBarcode[i].Length <= 5 && UserChangedBarcode[i].Length > 0)
                 {
                     string msg = "The 5 or less characters barcode will be padded with ";
-                    msg += (BarcodeList[i].Length == 5) ? " a space. \n" : " spaces. \n";
+                    msg += (UserChangedBarcode[i].Length == 5) ? " a space. \n" : " spaces. \n";
                     msg += "Do you want to continue?";
                     DialogResult dialogue = MessageBox.Show(msg, ErrString, MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
                     if (dialogue == DialogResult.No)
@@ -920,8 +933,8 @@ namespace DataManagerWindow
                     }
                     else
                     {
-                        for (int a = BarcodeList[i].Length; a < 6; a++)
-                            BarcodeList[i] = " " + BarcodeList[i];
+                        for (int a = UserChangedBarcode[i].Length; a < 6; a++)
+                            UserChangedBarcode[i] = " " + UserChangedBarcode[i];
                     }
                 }
                 else
@@ -930,39 +943,41 @@ namespace DataManagerWindow
                     return false;
                 }
             }
-            else if(!BarcodeList[i].All(c => char.IsLetterOrDigit(c)))
+            else if(!UserChangedBarcode[i].All(c => char.IsLetterOrDigit(c)))
             {
-                if(BarcodeList[i].Contains(" "))
+                if(UserChangedBarcode[i].Contains(" "))
                 {
-                    // The barcode is 5 characters long and
-                    // it is padded with a space. -- do nothing
+                    // The barcode is 5 or characters long and
+                    // it is padded with a space(s). -- do nothing
                 }
                 else
                 {
-                    MessageBox.Show(BarcodeList[i] + " and " + BarcodeList[i].Length.ToString());
+                    // This case is handled automatically - not required 
+                    // Implemented to hanndle unknown or exceptional cases
+                    MessageBox.Show(UserChangedBarcode[i] + " and " + UserChangedBarcode[i].Length.ToString());
                     MessageBox.Show(ErrString + "\nBarcode must contain upper case letters and digits only.");
                     return false;
                 }
             }
 
-            if ((DsrList[i].Length > 0) && (DsrBuffer[i] != DsrList[i]) && (DsrList[i].Length > 5))
+            if ((UserChangedDSR[i].Length > 0) && (DsrBuffer[i] != UserChangedDSR[i]) && (UserChangedDSR[i].Length > 5))
             {
                 MessageBox.Show(ErrString + "\nDSR value must contain 5 or less characters.");
                 return false;
             }
-            else if (!DsrList[i].All(c => char.IsLetterOrDigit(c)))
+            else if (!UserChangedDSR[i].All(c => char.IsLetterOrDigit(c)))
             {
                 MessageBox.Show(ErrString + "\nDSR value must contain upper case letters and digits only.");
                 return false;
             }
             
-            if ((CatalogNoList[i].Length > 0) && (CatalogNoBuffer[i] != CatalogNoList[i]) && 
-                (CatalogNoList[i].Length < 8))
+            if ((UserChangedCatalog[i].Length > 0) && (CatalogNoBuffer[i] != UserChangedCatalog[i]) && 
+                (UserChangedCatalog[i].Length < 8))
             {
                 MessageBox.Show(ErrString + "\nCatalog number must be 8 or more characters long.");
                 return false;
             }
-            else if (!CatalogNoList[i].All(c => char.IsLetterOrDigit(c)))
+            else if (!UserChangedCatalog[i].All(c => char.IsLetterOrDigit(c)))
             {
                 MessageBox.Show(ErrString + "\nCatalog number must contain capital letters and digits only.");
                 return false;
@@ -1153,9 +1168,9 @@ namespace DataManagerWindow
                     // Erase DSR = y
                     // Erase Catalog number = z
                     string eraseFlag = "";
-                    bool EraseBarcode = compute.EraseData(BarcodeBuffer[i], BarcodeList[i], "Barcode", ref eraseFlag);
-                    bool EraseDsr = compute.EraseData(DsrBuffer[i], DsrList[i], "DSR", ref eraseFlag);
-                    bool EraseCatalog = compute.EraseData(CatalogNoBuffer[i], CatalogNoList[i], "Catalog-number", ref eraseFlag);
+                    bool EraseBarcode = compute.EraseData(BarcodeBuffer[i], UserChangedBarcode[i], "Barcode", ref eraseFlag);
+                    bool EraseDsr = compute.EraseData(DsrBuffer[i], UserChangedDSR[i], "DSR", ref eraseFlag);
+                    bool EraseCatalog = compute.EraseData(CatalogNoBuffer[i], UserChangedCatalog[i], "Catalog-number", ref eraseFlag);
                     if (EraseBarcode || EraseDsr || EraseCatalog)
                     {
                         string warning = "Do you want to erase " + compute.EraseDataFields(eraseFlag) + " \r\n";
@@ -1163,16 +1178,16 @@ namespace DataManagerWindow
                         DialogResult dialogue = MessageBox.Show(warning, "Erase data !", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
                         if (dialogue == DialogResult.Yes)
                         {
-                            string barcode = (EraseBarcode == true) ? "x" : compute.GetDataToWrite(BarcodeBuffer[i], BarcodeList[i]);
-                            string dsr = (EraseDsr == true) ? "y" : compute.GetDataToWrite(DsrBuffer[i], DsrList[i]);
+                            string barcode = (EraseBarcode == true) ? "x" : compute.GetDataToWrite(BarcodeBuffer[i], UserChangedBarcode[i]);
+                            string dsr = (EraseDsr == true) ? "y" : compute.GetDataToWrite(DsrBuffer[i], UserChangedDSR[i]);
                             string catalog; 
                             if (barcode.Length / 2 >= 7)
-                                catalog = compute.GetDataToWrite(CatalogNoBuffer[i], CatalogNoList[i], 1, DataReplacedCount[i]);
+                                catalog = compute.GetDataToWrite(CatalogNoBuffer[i], UserChangedCatalog[i], 1, DataReplacedCount[i]);
                             else if (dsr.Length / 2 >= 3 && dsr.Length / 2 <= 7)
-                                catalog = compute.GetDataToWrite(CatalogNoBuffer[i], CatalogNoList[i], 1, DataReplacedCount[i]);
+                                catalog = compute.GetDataToWrite(CatalogNoBuffer[i], UserChangedCatalog[i], 1, DataReplacedCount[i]);
                             else
                                 catalog = (EraseCatalog == true) ? "z" : compute.GetDataToWrite(CatalogNoBuffer[i], 
-                                    CatalogNoList[i],0, DataReplacedCount[i]);
+                                    UserChangedCatalog[i],0, DataReplacedCount[i]);
                             DataToWrite[i] = tag + barcode + dsr + catalog;
                             if ((barcode + dsr + catalog).Length > remainedBytes[i])
                             {
@@ -1184,10 +1199,10 @@ namespace DataManagerWindow
                     }
                     else
                     {
-                        string barcode = compute.GetDataToWrite(BarcodeBuffer[i], BarcodeList[i]);
-                        string dsr = compute.GetDataToWrite(DsrBuffer[i], DsrList[i]);
-                        string catalog = compute.GetDataToWrite(CatalogNoBuffer[i], CatalogNoList[i], (barcode + dsr).Length, DataReplacedCount[i]);
-                        DataToWrite[i] = tag + dataToWrite(barcode, dsr, catalog, BarcodeList[i], DsrList[i], CatalogNoList[i]);
+                        string barcode = compute.GetDataToWrite(BarcodeBuffer[i], UserChangedBarcode[i]);
+                        string dsr = compute.GetDataToWrite(DsrBuffer[i], UserChangedDSR[i]);
+                        string catalog = compute.GetDataToWrite(CatalogNoBuffer[i], UserChangedCatalog[i], (barcode + dsr).Length, DataReplacedCount[i]);
+                        DataToWrite[i] = tag + dataToWrite(barcode, dsr, catalog, UserChangedBarcode[i], UserChangedDSR[i], UserChangedCatalog[i]);
                         if ((DataToWrite[i].Length  - 1)/2 > remainedBytes[i])
                         {
                             MemoryEnough = false;
@@ -1404,7 +1419,7 @@ namespace DataManagerWindow
         //              2) Receive data bytes from the ID Tags as character values and store
         //                 them as a string.
         //              3) Receive end signal of data bytes from the Hardware, and
-        //                  terminate function.
+        //                 terminate function.
         //-----------------------------------------------------------------------------------------------------------
         private void DataRequest(SerialPort serialPort1)
         {
@@ -1443,6 +1458,7 @@ namespace DataManagerWindow
             return;
         }
 
+        // Check if input contains lower case chas(s)
         private bool InputContainsLowerChar(string InputText)
         {
             for (int i = 0; i < InputText.Length; i++)
@@ -1487,7 +1503,7 @@ namespace DataManagerWindow
                 // - Barcode, DSR, and Catalog Number
                 ReadDataFields();
                 // Init Hex data column bar
-                HexDataColumnBar();
+                HexDataCountBar();
                 this.progressBar1.Visible = false;
                 this.progressBar1.Value = 0;
             }
@@ -1744,43 +1760,43 @@ namespace DataManagerWindow
         private void sRecordTag6_CheckedChanged(object sender, EventArgs e)
         {
             HexDataTextBox.Clear();
-            FillTextBox(TagsDataBuffer[5], 5);
+            DisplayHexDataTextBox(TagsDataBuffer[5], 5);
         }
 
         private void rSelectTag5_CheckedChanged(object sender, EventArgs e)
         {
             HexDataTextBox.Clear();
-            FillTextBox(TagsDataBuffer[4], 4);
+            DisplayHexDataTextBox(TagsDataBuffer[4], 4);
         }
 
         private void rSelectTag4_CheckedChanged(object sender, EventArgs e)
         {
             HexDataTextBox.Clear();
-            FillTextBox(TagsDataBuffer[3], 3);
+            DisplayHexDataTextBox(TagsDataBuffer[3], 3);
         }
 
         private void rSelectTag2_CheckedChanged(object sender, EventArgs e)
         {
             HexDataTextBox.Clear();
-            FillTextBox(TagsDataBuffer[1], 1);
+            DisplayHexDataTextBox(TagsDataBuffer[1], 1);
         }
 
         private void rSelectTag3_CheckedChanged(object sender, EventArgs e)
         {
             HexDataTextBox.Clear();
-            FillTextBox(TagsDataBuffer[2], 2);
+            DisplayHexDataTextBox(TagsDataBuffer[2], 2);
         }
 
         private void rSelectTag1_CheckedChanged(object sender, EventArgs e)
         {
             HexDataTextBox.Clear();
-            FillTextBox(TagsDataBuffer[0], 0);
+            DisplayHexDataTextBox(TagsDataBuffer[0], 0);
         }
 
         private void sRecordTag6_CheckedChanged_1(object sender, EventArgs e)
         {
             HexDataTextBox.Clear();
-            FillTextBox(TagsDataBuffer[5], 5);
+            DisplayHexDataTextBox(TagsDataBuffer[5], 5);
         }
 
         //-----------------------------------------------------------------------------------------------------------
@@ -1951,7 +1967,7 @@ namespace DataManagerWindow
 
         private void SelectTag6_CheckedChanged(object sender, EventArgs e)
         {
-            if (SelectTag1.Checked == true)
+            if (SelectTag6.Checked == true)
             {
                 BarcodeText6.ReadOnly = false;
                 DsrText6.ReadOnly = false;

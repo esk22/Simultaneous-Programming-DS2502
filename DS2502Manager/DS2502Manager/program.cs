@@ -31,15 +31,21 @@ namespace DS2502Manager
 {
     class program
     {
-        private static string[] BarcodeList;
-        private static string[] DsrList;
-        private static string[] CatalogNoList;
+        // Current data 
+        // after user makes changes
+        private static string[] UserChangedBarcode;
+        private static string[] UserChangedDSR;
+        private static string[] UserChangedCatalog;
+        // Data when loaded from the ID Chips
         private static string[] BarcodeBuffer;
         private static string[] DsrBuffer;
         private static string[] CatalogNoBuffer;
-        private static bool[] CheckBoxBuffer;
+        // Data as string
         private static string[] HexList;
+        // Data buffer
         private static string[] TagsDataBuffer;
+        // Other buffers
+        private static bool[] CheckBoxBuffer;
         private static string[] DataRecord;
         private static string[] DataToWrite;
         private static string[] DataBuffer;
@@ -54,7 +60,6 @@ namespace DS2502Manager
         SerialPort serialPort;
         private static bool portDetected;
         private static string portName;
-
         // Main function
         static void Main(string[] args)
         {
@@ -112,7 +117,7 @@ namespace DS2502Manager
                     }
                 }
             }
-            else if (args.Length > 2)
+            else if (args.Length == 1)
             {
                 if (args[0] == "write" || args[0] == "Write" || args[0] == "WRITE") // write commmand
                 {
@@ -122,10 +127,6 @@ namespace DS2502Manager
                 {
                     // Erase command
                 }
-            }
-            else if (args.Length == 1)
-            {
-                Console.WriteLine("Error: unsufficient arguements.");
             }
             else
             {
@@ -151,9 +152,9 @@ namespace DS2502Manager
             TagsDataBuffer = new string[6];
             DataRecord = new string[3];
             remainedBytes = new int[6];
-            BarcodeList = new string[6];
-            DsrList = new string[6];
-            CatalogNoList = new string[6];
+            UserChangedBarcode = new string[6];
+            UserChangedDSR = new string[6];
+            UserChangedCatalog = new string[6];
             HexList = new string[128];
             BarcodeBuffer = new string[6];
             DsrBuffer = new string[6];
@@ -202,7 +203,7 @@ namespace DS2502Manager
             }
             else
             {
-                Console.WriteLine("No Hardware detected.");
+                Console.WriteLine("No Hardware is detected.");
             }
         }
 
@@ -220,7 +221,6 @@ namespace DS2502Manager
             return false;
         }
 
-        
         //-----------------------------------------------------------------------------------------------------------
         // Function name: private void InitArrays()
         // Description: Initialize arrays
@@ -251,7 +251,7 @@ namespace DS2502Manager
             {
                 if (IDTagData[i - 1].Length > 1)
                 {
-                    TagsDataBuffer[i - 1] = input.SpaceDelimitor(input.RemoveExraWords(IDTagData[i - 1]));
+                    TagsDataBuffer[i - 1] = input.SpaceDelimitor(input.RemoveExtraWords(IDTagData[i - 1]));
                 }
                 else
                 {
@@ -307,7 +307,7 @@ namespace DS2502Manager
 
         //-----------------------------------------------------------------------------------------------------------
         // Function name: private static void serialPortInit(SerialPort serialPort)
-        // Description: Intialization of the serial port.
+        // Description: Serial Port intialization
         //-----------------------------------------------------------------------------------------------------------
         private void serialPortInit()
         {
@@ -380,7 +380,13 @@ namespace DS2502Manager
                         }
                     }
                 }
-            }           
+            }
+            PrintUsedRemainingBytes(used, remaining);
+        }
+
+        // Print used and remaining data bytes
+        private void PrintUsedRemainingBytes(int used, int remaining)
+        {
             string usedStr = (used > 9) ? used.ToString() + " bytes used" : used.ToString() + " byte used";
             string remainStr = (remaining > 9) ? remaining.ToString() + " bytes remaining" : remaining.ToString() + " byte remaining";
             Console.WriteLine(" ");
@@ -388,10 +394,10 @@ namespace DS2502Manager
         }
 
         //-----------------------------------------------------------------------------------------------------------
-        // Function name:  private void PrintColoumnBar(string[] DataRecord)
+        // Function name:  private void PrintRecordTextBar(string[] DataRecord)
         // Description: Print coloumn bar
         //-----------------------------------------------------------------------------------------------------------
-        private void PrintColoumnBar(string[] DataRecord)
+        private void PrintRecordTextBar(string[] DataRecord)
         {
             Console.WriteLine("");
             Console.WriteLine(" => Record List: ");
@@ -407,7 +413,7 @@ namespace DS2502Manager
         private void PrintDataRecord(string[] DataRecord)
         {
             if(DataRecord.Length > 0)
-                PrintColoumnBar(DataRecord);
+                PrintRecordTextBar(DataRecord);
             for (int i = 0; i < DataRecord.Length; i++)
             {
                 if (DataRecord.Length > 0)
@@ -509,20 +515,14 @@ namespace DS2502Manager
         }
 
         //-----------------------------------------------------------------------------------------------------------
-        // Function name: private void FillDataFields()
-        // Description: - Call function to parse string to data values: one data byte
-        //                contains two hex values that comes from an address of the 
-        //                ID Tag EPROM ( Example: 09 is a data byte)
-        //              - Identify and combine the data bytes to appropriate data types
-        //                such as Barcode, DSR, and Catalog Number
+        // Function name: private void ComputeDatalenPos(ref int barcodePos, ref int DsrPos, ref int CatalogPos,
+        //                             ref int barCodeLen, ref int DsrLen, ref int CatalogLen, ref int crc)
+        // Description: Compute the length and position of data in the EPROM
         //-----------------------------------------------------------------------------------------------------------
-        private void FillDataFields(string GetData, int tag)
+        private void ComputeDatalenPos(ref int barcodePos, ref int DsrPos, ref int CatalogPos,
+                                        ref int barCodeLen, ref int DsrLen, ref int CatalogLen, ref int crc)
         {
-            ParseStrToData(GetData, tag - 1);
-            int barcodePos = 0, DsrPos = 0, CatalogPos = 0;
-            int barCodeLen = 0, DsrLen = 0, CatalogLen = 0;
             bool BarcodeDsrEnded = false, BarcodeFound = false, DsrPreceded = false;
-            int crc = 0;
             int crcPos = 0;
             for (int i = 0; i < 127; i++)
             {
@@ -534,14 +534,14 @@ namespace DS2502Manager
                         {
                             barCodeLen = (Convert.ToInt32(HexList[i], 16));
                             barcodePos = i + 1;
-                            crcPos = crc = i + (Convert.ToInt32(HexList[i], 16)) - 1;
+                            crcPos = i + (Convert.ToInt32(HexList[i], 16)) - 1;
                             crc = Convert.ToInt32(HexList[crcPos], 16);
                             BarcodeFound = true;
                         }
                     }
                     else if ((Convert.ToInt32(HexList[i], 16)) >= 3 && (Convert.ToInt32(HexList[i], 16)) <= 7 && i > crcPos)
                     {
-                       //  
+                        //  
                         if (Convert.ToInt32(HexList[i], 16) != crc)
                         {
                             DsrLen = (Convert.ToInt32(HexList[i], 16));
@@ -556,7 +556,7 @@ namespace DS2502Manager
 
                 if ((Convert.ToInt32(HexList[i], 16)) >= 10 && (Convert.ToInt32(HexList[i], 16)) <= 47 && i > crcPos)
                 {
-                    // Console.WriteLine(Convert.ToInt32(HexList[i], 16).ToString());
+                    // MessageBox.Show(Convert.ToInt32(HexList[i], 16).ToString());
                     if (Convert.ToInt32(HexList[i], 16) != crc && HexList[i] != " ")
                     {
                         BarcodeDsrEnded = true;
@@ -564,9 +564,27 @@ namespace DS2502Manager
                         CatalogPos = i + 1;
                         break;
                     }
-                    
+
                 }
             }
+        }
+
+        //-----------------------------------------------------------------------------------------------------------
+        // Function name: private void ComputeDataFields()
+        // Description: - Call function to parse string to data values: one data byte
+        //                contains two hex values that comes from an address of the 
+        //                ID Tag EPROM ( Example: 09 is a data byte)
+        //              - Identify and combine the data bytes to appropriate data types
+        //                such as Barcode, DSR, and Catalog Number
+        //-----------------------------------------------------------------------------------------------------------
+        private void ComputeDataFields(string GetData, int tag)
+        {
+            ParseStrToData(GetData, tag - 1);
+            int barcodePos = 0, DsrPos = 0, CatalogPos = 0;
+            int barCodeLen = 0, DsrLen = 0, CatalogLen = 0;
+            // bool BarcodeDsrEnded = false, BarcodeFound = false, DsrPreceded = false;
+            int crc = 0;
+            ComputeDatalenPos(ref barcodePos, ref DsrPos, ref CatalogPos, ref barCodeLen, ref DsrLen, ref CatalogLen, ref crc);
             //Console.WriteLine(CatalogPos.ToString());
             string barcodeStr = "", DsrStr = "", CatalogStr = "";
             int barcodeCounter = 0, DsrCounter = 0, CatalogCounter = 0;
@@ -599,12 +617,12 @@ namespace DS2502Manager
                 }
             }
                 
-            BarcodeList[barcodeCounter] = barcodeStr;
-            DsrList[DsrCounter] = DsrStr;
+            UserChangedBarcode[barcodeCounter] = barcodeStr;
+            UserChangedDSR[DsrCounter] = DsrStr;
             // Console.WriteLine(DsrStr);
             string DataReplaced = "";
             // Console.WriteLine(CatalogStr);
-            CatalogNoList[CatalogCounter] = input.GetCatalogNumber(CatalogStr, ref DataReplaced);
+            UserChangedCatalog[CatalogCounter] = input.GetCatalogNumber(CatalogStr, ref DataReplaced);
             ReplacedDataCountInCatalog(DataReplaced, tag);
             // Call function to fill the appropriate data fields
         }
@@ -657,13 +675,13 @@ namespace DS2502Manager
         private bool CheckInputs(int i)
         {
             string ErrString = "In Tag Number " + (i + 1).ToString() + " :";
-            if ((BarcodeList[i].Length > 0) && (BarcodeBuffer[i] != BarcodeList[i]) &&
-                (BarcodeList[i].Length < 6 || BarcodeList[i].Length > 7))
+            if ((UserChangedBarcode[i].Length > 0) && (BarcodeBuffer[i] != UserChangedBarcode[i]) &&
+                (UserChangedBarcode[i].Length < 6 || UserChangedBarcode[i].Length > 7))
             {
-                if (BarcodeList[i].Length == 5)
+                if (UserChangedBarcode[i].Length == 5)
                 {
                     string msg = "The 5 or less characters barcode will be padded with ";
-                    msg += (BarcodeList[i].Length == 5) ? " a space. \n" : " spaces. \n";
+                    msg += (UserChangedBarcode[i].Length == 5) ? " a space. \n" : " spaces. \n";
                     msg += "Do you want to continue? (Y/N) :";
                     string response = Console.ReadLine();
                     if (response == "N" || response == "n")
@@ -672,8 +690,8 @@ namespace DS2502Manager
                     }
                     else
                     {
-                        for (int a = BarcodeList[i].Length; a < 6; a++)
-                            BarcodeList[i] = " " + BarcodeList[i];
+                        for (int a = UserChangedBarcode[i].Length; a < 6; a++)
+                            UserChangedBarcode[i] = " " + UserChangedBarcode[i];
                     }
                 }
                 else
@@ -682,39 +700,39 @@ namespace DS2502Manager
                     return false;
                 }
             }
-            else if(!BarcodeList[i].All(c => char.IsLetterOrDigit(c)))
+            else if(!UserChangedBarcode[i].All(c => char.IsLetterOrDigit(c)))
             {
-                if(BarcodeList[i].Contains(" "))
+                if(UserChangedBarcode[i].Contains(" "))
                 {
-                    // The barcode is 5 characters long and
-                    // it is padded with a space. -- do nothing
+                    // The barcode is 5 or characters long and
+                    // it is padded with a space9s). -- do nothing
                 }
                 else
                 {
-                    Console.WriteLine(BarcodeList[i] + " and " + BarcodeList[i].Length.ToString());
+                    Console.WriteLine(UserChangedBarcode[i] + " and " + UserChangedBarcode[i].Length.ToString());
                     Console.WriteLine(ErrString + "\nBarcode must contain upper case letters and digits only.");
                     return false;
                 }
             }
 
-            if ((DsrList[i].Length > 0) && (DsrBuffer[i] != DsrList[i]) && (DsrList[i].Length > 5))
+            if ((UserChangedDSR[i].Length > 0) && (DsrBuffer[i] != UserChangedDSR[i]) && (UserChangedDSR[i].Length > 5))
             {
                 Console.WriteLine(ErrString + "\nDSR value must contain 5 or less characters.");
                 return false;
             }
-            else if (!DsrList[i].All(c => char.IsLetterOrDigit(c)))
+            else if (!UserChangedDSR[i].All(c => char.IsLetterOrDigit(c)))
             {
                 Console.WriteLine(ErrString + "\nDSR value must contain upper case letters and digits only.");
                 return false;
             }
             
-            if ((CatalogNoList[i].Length > 0) && (CatalogNoBuffer[i] != CatalogNoList[i]) && 
-                (CatalogNoList[i].Length < 8))
+            if ((UserChangedCatalog[i].Length > 0) && (CatalogNoBuffer[i] != UserChangedCatalog[i]) && 
+                (UserChangedCatalog[i].Length < 8))
             {
                 Console.WriteLine(ErrString + "\nCatalog number must be 8 or more characters long.");
                 return false;
             }
-            else if (!CatalogNoList[i].All(c => char.IsLetterOrDigit(c)))
+            else if (!UserChangedCatalog[i].All(c => char.IsLetterOrDigit(c)))
             {
                 Console.WriteLine(ErrString + "\nCatalog number must contain capital letters and digits only.");
                 return false;
@@ -932,9 +950,9 @@ namespace DS2502Manager
                     // Erase DSR = y
                     // Erase Catalog number = z
                     string eraseFlag = "";
-                    bool EraseBarcode = output.EraseData(BarcodeBuffer[i], BarcodeList[i], "Barcode", ref eraseFlag);
-                    bool EraseDsr = output.EraseData(DsrBuffer[i], DsrList[i], "DSR", ref eraseFlag);
-                    bool EraseCatalog = output.EraseData(CatalogNoBuffer[i], CatalogNoList[i], "Catalog-number", ref eraseFlag);
+                    bool EraseBarcode = output.EraseData(BarcodeBuffer[i], UserChangedBarcode[i], "Barcode", ref eraseFlag);
+                    bool EraseDsr = output.EraseData(DsrBuffer[i], UserChangedDSR[i], "DSR", ref eraseFlag);
+                    bool EraseCatalog = output.EraseData(CatalogNoBuffer[i], UserChangedCatalog[i], "Catalog-number", ref eraseFlag);
                     if (EraseBarcode || EraseDsr || EraseCatalog)
                     {
                         string warning = "Do you want to erase " + output.EraseDataFields(eraseFlag) + " \r\n";
@@ -942,16 +960,16 @@ namespace DS2502Manager
                         string response = Console.ReadLine();
                         if (response == "Y" || response == "n")
                         {
-                            string barcode = (EraseBarcode == true) ? "x" : output.GetDataToWrite(BarcodeBuffer[i], BarcodeList[i]);
-                            string dsr = (EraseDsr == true) ? "y" : output.GetDataToWrite(DsrBuffer[i], DsrList[i]);
+                            string barcode = (EraseBarcode == true) ? "x" : output.GetDataToWrite(BarcodeBuffer[i], UserChangedBarcode[i]);
+                            string dsr = (EraseDsr == true) ? "y" : output.GetDataToWrite(DsrBuffer[i], UserChangedDSR[i]);
                             string catalog; 
                             if (barcode.Length / 2 >= 7)
-                                catalog = output.GetDataToWrite(CatalogNoBuffer[i], CatalogNoList[i], 1, DataReplacedCount[i]);
+                                catalog = output.GetDataToWrite(CatalogNoBuffer[i], UserChangedCatalog[i], 1, DataReplacedCount[i]);
                             else if (dsr.Length / 2 >= 3 && dsr.Length / 2 <= 7)
-                                catalog = output.GetDataToWrite(CatalogNoBuffer[i], CatalogNoList[i], 1, DataReplacedCount[i]);
+                                catalog = output.GetDataToWrite(CatalogNoBuffer[i], UserChangedCatalog[i], 1, DataReplacedCount[i]);
                             else
                                 catalog = (EraseCatalog == true) ? "z" : output.GetDataToWrite(CatalogNoBuffer[i], 
-                                    CatalogNoList[i],0, DataReplacedCount[i]);
+                                    UserChangedCatalog[i],0, DataReplacedCount[i]);
                             DataToWrite[i] = tag + barcode + dsr + catalog;
                             if ((barcode + dsr + catalog).Length > remainedBytes[i])
                             {
@@ -963,10 +981,10 @@ namespace DS2502Manager
                     }
                     else
                     {
-                        string barcode = output.GetDataToWrite(BarcodeBuffer[i], BarcodeList[i]);
-                        string dsr = output.GetDataToWrite(DsrBuffer[i], DsrList[i]);
-                        string catalog = output.GetDataToWrite(CatalogNoBuffer[i], CatalogNoList[i], (barcode + dsr).Length, DataReplacedCount[i]);
-                        DataToWrite[i] = tag + dataToWrite(barcode, dsr, catalog, BarcodeList[i], DsrList[i], CatalogNoList[i]);
+                        string barcode = output.GetDataToWrite(BarcodeBuffer[i], UserChangedBarcode[i]);
+                        string dsr = output.GetDataToWrite(DsrBuffer[i], UserChangedDSR[i]);
+                        string catalog = output.GetDataToWrite(CatalogNoBuffer[i], UserChangedCatalog[i], (barcode + dsr).Length, DataReplacedCount[i]);
+                        DataToWrite[i] = tag + dataToWrite(barcode, dsr, catalog, UserChangedBarcode[i], UserChangedDSR[i], UserChangedCatalog[i]);
                         if ((DataToWrite[i].Length  - 1)/2 > remainedBytes[i])
                         {
                             MemoryEnough = false;

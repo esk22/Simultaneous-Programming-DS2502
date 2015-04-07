@@ -16,7 +16,7 @@ speed and timing accuracy to accomplish this. This object requires an
 └───────────────────────────────────┘
 
 Edited by Arun Rai for Senior Design project
-Senior Design Capstonne - (Fall 2014 - Spring 2015) - Virginia Tech
+Senior Design Capstone - (Fall 2014 - Spring 2015) - Virginia Tech
 Date: 03/01/2015
 Added additional function implementations for R/W operations on DS2502
 Reviewed by: 
@@ -53,7 +53,6 @@ CON
   REQUIRE_CRC       = $100
 
 OBJ
-  'debug     : "Parallax Serial Terminal"      ''  Parallax Serial Terminal 
   system    : "Propeller Board of Education"
   PORT      : "Parallax Serial Terminal Plus"
                                               
@@ -334,7 +333,7 @@ PUB ByteToMemory(address, inbyte, PGM) : loop_counter | crc, error_count
             'if Writing fails
             ' 50 is an arbitrary number
             ' Expecation is that the writing operation should
-            ' not exceed 50 resets
+            ' not exceed 50 operations
             if(crc == readBits(8))
                 outa[PGM] := 0
                 ' a programming pulse of 480 us 
@@ -348,7 +347,7 @@ PUB ByteToMemory(address, inbyte, PGM) : loop_counter | crc, error_count
         else
             if (error_count == 50)
                 return
-            error_count := error_count + 1
+            error_count++
             
 '' Specify tag number to compute the crc value
 '' for the tag 
@@ -414,7 +413,7 @@ PUB WriteBytesToMemory(PGM, tag) | a, erase_start, erase_end, write_start, write
                 PORT.Hex(WriteData, 2)
                 if(ReadAddressContent(write_start) == $FF)
                     ByteToMemory(write_start, WriteData, PGM)
-                write_start := write_start + 1
+                write_start++
                 i := 0
         PORT.Str(string(" <> DATA -- End Address <> "))
         PORT.Hex(write_start - 1, 2)
@@ -465,7 +464,7 @@ PUB WriteBytesToMemory(PGM, tag) | a, erase_start, erase_end, write_start, write
                     PORT.Hex(WriteData, 2)
                     if(ReadAddressContent(write_start) == $FF)
                         ByteToMemory(write_start, WriteData, PGM)
-                    write_start := write_start + 1
+                    write_start++
                     i := 0 
             PORT.Str(string(" <> DATA <> "))    
             PORT.Str(string(" Write End address <> "))

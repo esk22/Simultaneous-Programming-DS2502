@@ -77,7 +77,7 @@ PRI ReadDevice1 | i, numDevices, addr1, x
             if BYTE[addr1] == tag1#FAMILY_DS2502
                 SendChipSerialNo(addr1)
                 CRC1[0] := tag1#READ_MEMORY
-                Write(127,127, $0D)
+                'Write(127,127, $0D)
                 repeat x from 127 to 127
                     CRC1[1] := x
                     CRC2[2] := 0
@@ -92,7 +92,7 @@ PRI ReadDevice1 | i, numDevices, addr1, x
                    
 PRI Write(s, e, d) : a
     repeat a from s to e
-        tag1.ByteToMemory(a, d, PGM, 1)
+        tag1.ByteToMemory(a, d, PGM)
     return
     
 '' Turn on LEDs P16 when data/command

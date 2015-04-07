@@ -1,4 +1,4 @@
-﻿//
+﻿// Filename: MainForm.cs
 // Author: Arun Rai - Virginia Tech
 //
 using System;
@@ -431,7 +431,7 @@ namespace DataManagerWindow
             }
             else
             {
-                message = "Failed to detect the hardware device!";
+                message = "No Hardware device is detected!";
                 string caption = "Error";
                 MessageBox.Show(message, caption, MessageBoxButtons.OK, MessageBoxIcon.Error);
             }

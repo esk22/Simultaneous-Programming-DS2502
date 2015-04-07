@@ -83,7 +83,7 @@
             this.RecordList = new System.Windows.Forms.TextBox();
             this.tabPage3 = new System.Windows.Forms.TabPage();
             this.DataBytes = new System.Windows.Forms.Label();
-            this.ColumnBar = new System.Windows.Forms.TextBox();
+            this.HexCountBar = new System.Windows.Forms.TextBox();
             this.SerialNoLabel = new System.Windows.Forms.Label();
             this.DisplayHexRadioButtonList = new System.Windows.Forms.GroupBox();
             this.sRecordTag6 = new System.Windows.Forms.RadioButton();
@@ -635,7 +635,7 @@
             // 
             this.tabPage3.BackColor = System.Drawing.Color.Transparent;
             this.tabPage3.Controls.Add(this.DataBytes);
-            this.tabPage3.Controls.Add(this.ColumnBar);
+            this.tabPage3.Controls.Add(this.HexCountBar);
             this.tabPage3.Controls.Add(this.SerialNoLabel);
             this.tabPage3.Controls.Add(this.DisplayHexRadioButtonList);
             this.tabPage3.Controls.Add(this.HexDataTextBox);
@@ -657,12 +657,12 @@
             this.DataBytes.Text = "Bytes";
             this.DataBytes.Click += new System.EventHandler(this.DataBytes_Click);
             // 
-            // ColumnBar
+            // HexCountBar
             // 
-            this.ColumnBar.Location = new System.Drawing.Point(93, 41);
-            this.ColumnBar.Name = "ColumnBar";
-            this.ColumnBar.Size = new System.Drawing.Size(429, 20);
-            this.ColumnBar.TabIndex = 7;
+            this.HexCountBar.Location = new System.Drawing.Point(93, 41);
+            this.HexCountBar.Name = "HexCountBar";
+            this.HexCountBar.Size = new System.Drawing.Size(429, 20);
+            this.HexCountBar.TabIndex = 7;
             // 
             // SerialNoLabel
             // 
@@ -781,7 +781,7 @@
             this.RefreshButton.UseVisualStyleBackColor = true;
             this.RefreshButton.Click += new System.EventHandler(this.RefreshButton_Click);
             // 
-            // DataView
+            // DataManager
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
@@ -792,7 +792,7 @@
             this.Controls.Add(this.OkBotton);
             this.Controls.Add(this.CancelBotton);
             this.Controls.Add(this.HelpButton);
-            this.Name = "DataView";
+            this.Name = "DataManager";
             this.Text = "DataView";
             this.Load += new System.EventHandler(this.DataView_Load);
             this.tabControl1.ResumeLayout(false);
@@ -866,7 +866,7 @@
         private System.Windows.Forms.TextBox ColumnList;
         private System.Windows.Forms.TextBox RecordList;
         private System.Windows.Forms.Label SerialNoLabel;
-        private System.Windows.Forms.TextBox ColumnBar;
+        private System.Windows.Forms.TextBox HexCountBar;
         private System.Windows.Forms.Button RefreshButton;
         private System.Windows.Forms.RadioButton sRecordTag5;
         private System.Windows.Forms.RadioButton sRecordTag4;

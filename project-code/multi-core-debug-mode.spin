@@ -61,7 +61,6 @@ OBJ
   tag5      : "SpinOneWire-debug-mode"
   tag6      : "SpinOneWire-debug-mode"
   system    : "Propeller Board of Education"
-  PORT      : "Parallax Serial Terminal Plus"
   
 VAR
   long addrs1[2 * MAX_DEVICE]
@@ -73,8 +72,7 @@ VAR
   byte c
   ' Allocate stack for multi-core operation
   ' Each COG needs some space for operaton
-  long  Stack1[900]
-  'long  Stack2[1600]
+  long  Stack[900]
   ' Data buffer
   long  DataBuffer2[128]
   long  DataBuffer3[128]
@@ -89,17 +87,15 @@ VAR
   long  DataTag6[128]
   ' Define flags
   long BytesRead[6]
-  long BytesWritten[6]
   long BytesReady[6]
   ' Define addresses - one for each COG
   long addr2, addr3, addr4, addr5, addr6
-  byte counter1, counter2, counter3, counter4, counter5, counter6
+  byte BytesCount1, BytesCount2, BytesCount3, BytesCount4, BytesCount5, BytesCount6
   byte TagNumber
   byte dataStart[6]
   
 PUB go | a
     SetPGMLineHigh
-    ' Intialization of buffers
     system.Clock(80_000_000)
     TagsInit
     repeat 
@@ -119,12 +115,12 @@ PUB go | a
             TagNumber := 0
             repeat a from 0 to 5
                 dataStart[a] := 0
-            counter1 := 0
-            counter2 := 0
-            counter3 := 0
-            counter4 := 0
-            counter5 := 0
-            counter6 := 0
+            BytesCount1 := 0
+            BytesCount2 := 0
+            BytesCount3 := 0
+            BytesCount4 := 0
+            BytesCount5 := 0
+            BytesCount6 := 0
             repeat until c == "q"
                 c := tag1.ReceiveChar
                 if (c == "q")
@@ -145,51 +141,51 @@ PUB go | a
                 if (TagNumber == 1)
                     if (c <> "a")
                         if (c == "s")
-                            dataStart[0] := counter1
-                        DataTag1[counter1]  := c
-                        counter1 := counter1 + 1
+                            dataStart[0] := BytesCount1
+                        DataTag1[BytesCount1]  := c
+                        BytesCount1++
                 elseif (TagNumber == 2)  
                     if (c <> "b")
                         if (c == "s")
-                            dataStart[1] := counter2
-                        DataTag2[counter2]  := c
-                        counter2 := counter2 + 1
+                            dataStart[1] := BytesCount2
+                        DataTag2[BytesCount2]  := c
+                        BytesCount2++
                 elseif (TagNumber == 3)
                     if (c <> "c")
                         if (c == "s")
-                            dataStart[2] := counter3
-                        DataTag3[counter3]  := c
-                        counter3 := counter3 + 1
+                            dataStart[2] := BytesCount3
+                        DataTag3[BytesCount3]  := c
+                        BytesCount3++
                 elseif (TagNumber == 4)
                     if (c <> "d")
                         if (c == "s")
-                            dataStart[3] := counter4
-                        DataTag4[counter4]  := c
-                        counter4 := counter4 + 1
+                            dataStart[3] := BytesCount4
+                        DataTag4[BytesCount4]  := c
+                        BytesCount4++
                 elseif (TagNumber == 5)
                     if (c <> "e")
                         if (c == "s")
-                            dataStart[4] := counter5
-                        DataTag5[counter5]  := c
-                        counter5 := counter5 + 1
+                            dataStart[4] := BytesCount5
+                        DataTag5[BytesCount5]  := c
+                        BytesCount5++
                 elseif (TagNumber == 6)
                     if (c <> "f")
                         if (c == "s")
-                            dataStart[5] := counter6
-                        DataTag6[counter6]  := c
-                        counter6 := counter6 + 1
+                            dataStart[5] := BytesCount6
+                        DataTag6[BytesCount6]  := c
+                        BytesCount6++
                         
             waitcnt(constant(tag1#USEC_TICKS * 5000) + cnt)
             CogOperation("W")
            
 PRI CogOperation(op)
     if (op == "R")     
-        cognew(ReadDevice1, @stack1[150])
-        cognew(ReadDevice2, @stack1[300])
-        cognew(ReadDevice3, @stack1[450])
-        cognew(ReadDevice4, @stack1[600])
-        cognew(ReadDevice5, @stack1[750])
-        cognew(ReadDevice6, @stack1[0])     
+        cognew(ReadDevice1, @stack[150])
+        cognew(ReadDevice2, @stack[300])
+        cognew(ReadDevice3, @stack[450])
+        cognew(ReadDevice4, @stack[600])
+        cognew(ReadDevice5, @stack[750])
+        cognew(ReadDevice6, @stack[0])     
     elseif (op == "W")
         'WriteBytesToMemory1(24)
         WriteBytesToMemory1(PIN22)
@@ -301,7 +297,7 @@ PRI ReadDevice6 | i, numDevices, x
         if i => numDevices
             ' No device found
             BytesReady[5] := 1
-            SendBytes(string("Send bytes - serial"))
+            SendBytes(string("Send bytes to serial port"))
         else
             addr6 := @addrs6 + (i << 3)
             if BYTE[addr6] == tag6#FAMILY_DS2502
@@ -310,7 +306,7 @@ PRI ReadDevice6 | i, numDevices, x
                 BytesRead[5] := 1
                 BytesReady[5] := 1
                 ' Call function to write data to the Serial Port
-                SendBytes(string("Send bytes - serial"))
+                SendBytes(string("Send bytes to serial port"))
             
 ' This function is called after COG6 finishes AddDigits
 ' reading operation. The function checks if other COGS have
@@ -365,65 +361,65 @@ PRI SendBytes(bytes) | x
                     tag1.SendStr(string("finished"))
                     return
 
-'' Write data bytes - Tag 1
+'' Write data bytes - ID Chip 1
 PRI WriteBytesToMemory1(PGM) : i
     tag1.DataStartPos(dataStart[0])
-    tag1.RecordCounter(counter1)
-    repeat i from 0 to (counter1 - 1)
+    tag1.RecordCounter(BytesCount1)
+    repeat i from 0 to (BytesCount1 - 1)
         tag1.DataRecord(i, DataTag1[i])
     tag1.WriteBytesToMemory(PGM, 1) 
     return
  
-'' Write data bytes - Tag 2                         
+'' Write data bytes - ID Chip 2                         
 PRI WriteBytesToMemory2(PGM) : i
     tag1.start(PIN11)
     tag1.DataStartPos(dataStart[1])
-    tag1.RecordCounter(counter2)
-    repeat i from 0 to (counter2 - 1)
+    tag1.RecordCounter(BytesCount2)
+    repeat i from 0 to (BytesCount2 - 1)
         tag1.DataRecord(i, DataTag2[i])
     waitcnt(constant(tag1#USEC_TICKS * 5000) + cnt)
     tag1.WriteBytesToMemory(PGM, 2) 
     return
  
-'' Write data bytes - Tag 3   
+'' Write data bytes - ID Chip 3   
 PRI WriteBytesToMemory3(PGM) | i
     tag1.start(PIN12)
     tag1.DataStartPos(dataStart[2])
-    tag1.RecordCounter(counter3)
-    repeat i from 0 to (counter3 - 1)
+    tag1.RecordCounter(BytesCount3)
+    repeat i from 0 to (BytesCount3 - 1)
         tag1.DataRecord(i, DataTag3[i])
     waitcnt(constant(tag1#USEC_TICKS * 5000) + cnt)
     tag1.WriteBytesToMemory(PGM, 3) 
     return
 
-'' Write data bytes - Tag 4    
+'' Write data bytes - ID Chip 4    
 PRI WriteBytesToMemory4(PGM) | i
     tag1.start(PIN13)
     tag1.DataStartPos(dataStart[3])
-    tag1.RecordCounter(counter4)
-    repeat i from 0 to (counter4 - 1)
+    tag1.RecordCounter(BytesCount4)
+    repeat i from 0 to (BytesCount4 - 1)
         tag1.DataRecord(i, DataTag4[i])
     waitcnt(constant(tag1#USEC_TICKS * 5000) + cnt)
     tag1.WriteBytesToMemory(PGM, 4) 
     return
 
-'' Write data bytes - Tag 5    
+'' Write data bytes - ID Chip 5    
 PRI WriteBytesToMemory5(PGM) | i
     tag1.start(PIN14)
     tag1.DataStartPos(dataStart[4])
-    tag1.RecordCounter(counter5)
-    repeat i from 0 to (counter5 - 1)
+    tag1.RecordCounter(BytesCount5)
+    repeat i from 0 to (BytesCount5 - 1)
         tag1.DataRecord(i, DataTag5[i])
     waitcnt(constant(tag1#USEC_TICKS * 5000) + cnt)
     tag1.WriteBytesToMemory(PGM, 5) 
     return
 
-'' Write data bytes - Tag 6
+'' Write data bytes - ID Chip 6
 PRI WriteBytesToMemory6(PGM) | i
     tag1.start(PIN15)
     tag1.DataStartPos(dataStart[5])
-    tag1.RecordCounter(counter6)
-    repeat i from 0 to (counter6 - 1)
+    tag1.RecordCounter(BytesCount6)
+    repeat i from 0 to (BytesCount6 - 1)
         tag1.DataRecord(i, DataTag6[i])
     waitcnt(constant(tag1#USEC_TICKS * 5000) + cnt)
     tag1.WriteBytesToMemory(PGM, 6) 
@@ -431,7 +427,7 @@ PRI WriteBytesToMemory6(PGM) | i
 
 '' Turn on LEDs P16 when data/command
 '' is received through the Serial Port  
-'' This function may not be required later.   
+'' The Pin can be changed based on the design.    
 PRI DataReceiveIndicator
     dira[16] := 1
     outa[16] := 1
