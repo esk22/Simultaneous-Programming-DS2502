@@ -62,7 +62,7 @@ namespace DataManagerWindow
                 this.HelpText.AppendText("\r\n");
                 this.HelpText.AppendText("CRC - Cyclic Redundency Checksum of the data. \r\n");
                 this.HelpText.AppendText("\r\n");
-                this.HelpText.AppendText("Unavailalbe tag(s) is/are disableed. \r \n");
+                this.HelpText.AppendText("Checkboxs of Unavailalbe tags are disableed. \r \n");
             }
             else if (tagPage == 3)
             {

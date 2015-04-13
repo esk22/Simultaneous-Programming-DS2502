@@ -62,14 +62,14 @@
     <Compile Include="HelpWindow.Designer.cs">
       <DependentUpon>HelpWindow.cs</DependentUpon>
     </Compile>
-    <Compile Include="MainForm.cs">
+    <Compile Include="MainWindow.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="MainForm.Designer.cs">
-      <DependentUpon>MainForm.cs</DependentUpon>
+    <Compile Include="MainWindow.Designer.cs">
+      <DependentUpon>MainWindow.cs</DependentUpon>
     </Compile>
-    <Compile Include="InputOutpuBytes.cs" />
-    <Compile Include="Program.cs" />
+    <Compile Include="BytesManager.cs" />
+    <Compile Include="OneWire.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <EmbeddedResource Include="DataManager.resx">
       <DependentUpon>DataManager.cs</DependentUpon>
@@ -77,8 +77,8 @@
     <EmbeddedResource Include="HelpWindow.resx">
       <DependentUpon>HelpWindow.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="MainForm.resx">
-      <DependentUpon>MainForm.cs</DependentUpon>
+    <EmbeddedResource Include="MainWindow.resx">
+      <DependentUpon>MainWindow.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>

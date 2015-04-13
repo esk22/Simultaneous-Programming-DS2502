@@ -1,6 +1,8 @@
-﻿// Filename: DataManager.cs
+﻿// 
+// Filename: DataManager.cs
 // Author: Arun Rai - Virginia Tech
 //
+
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -21,10 +23,10 @@ namespace DataManagerWindow
         private static string[] UserChangedBarcode;
         private static string[] UserChangedDSR;
         private static string[] UserChangedCatalog;
-        // Previous data list when data is loaded from the ID Chips
+        // Data list when data is loaded from the ID Chips
         private static string[] BarcodeBuffer;
         private static string[] DsrBuffer;
-        private static string[] CatalogNoBuffer;
+        private static string[] CatalogBuffer;
         // Other arrays
         private static bool[] CheckBoxBuffer;
         private static string[] HexList;
@@ -35,10 +37,10 @@ namespace DataManagerWindow
         private static string[] DataBuffer;
         private static int ProgressMax;
         private static int[] DataReplacedCount;
-        private static int[] remainedBytes;
+        private static int[] BytesRemained;
         private static string PORT; // Serial Port Name
         // Create objects
-        InputOutpuBytes compute;
+        BytesManager compute;
         ComputeCRC8 crc;
         // Main function
         public DataManager(SerialPort serialPort, string portName, string[] StrDataBytes)
@@ -130,7 +132,7 @@ namespace DataManagerWindow
             // this.RecordList.ScrollBars = ScrollBars.Vertical;
 
             // Instantiate objects
-            compute = new InputOutpuBytes();
+            compute = new BytesManager();
             crc = new ComputeCRC8();
 
             UserChangedBarcode = new string[6];
@@ -139,18 +141,18 @@ namespace DataManagerWindow
             HexList = new string[128];
             BarcodeBuffer = new string[6];
             DsrBuffer = new string[6];
-            CatalogNoBuffer = new string[6];
+            CatalogBuffer = new string[6];
             CheckBoxBuffer = new bool[6];
             // Define the size of the array that copies and holds
             // the ID Tag data
             TagsDataBuffer = new string[6];
             // Init data record
             DataRecord = new string[3];
-            remainedBytes = new int[6];
+            BytesRemained = new int[6];
             for (int i = 0; i < 3; i++)
                 DataRecord[i] = "a";
             for (int j = 0; j < 6; j++)
-                remainedBytes[0] = 127;
+                BytesRemained[0] = 127;
             // Progressbar maximum
             ProgressMax = 1900;
             this.progressBar1.Visible = false;
@@ -367,12 +369,12 @@ namespace DataManagerWindow
                          
             // Read Catalog Number text boxesand store texts (data)
             // in the temp buffer
-            CatalogNoBuffer[0] = CatalogText1.Text;
-            CatalogNoBuffer[1] = CatalogText2.Text;
-            CatalogNoBuffer[2] = CatalogText3.Text;
-            CatalogNoBuffer[3] = CatalogText4.Text;
-            CatalogNoBuffer[4] = CatalogText5.Text;
-            CatalogNoBuffer[5] = CatalogText6.Text;
+            CatalogBuffer[0] = CatalogText1.Text;
+            CatalogBuffer[1] = CatalogText2.Text;
+            CatalogBuffer[2] = CatalogText3.Text;
+            CatalogBuffer[3] = CatalogText4.Text;
+            CatalogBuffer[4] = CatalogText5.Text;
+            CatalogBuffer[5] = CatalogText6.Text;
         }
 
         //-----------------------------------------------------------------------------------------------------------
@@ -522,7 +524,7 @@ namespace DataManagerWindow
                 }
             }
             if (tag > -1)
-                remainedBytes[tag] = remaining;
+                BytesRemained[tag] = remaining;
         }
 
         //-----------------------------------------------------------------------------------------------------------
@@ -911,6 +913,37 @@ namespace DataManagerWindow
         }
 
         //-----------------------------------------------------------------------------------------------------------
+        // Function name: private bool PadBarcode(string barcode, string ErrString)
+        // Description: Pad barcode with leading space if the user input barcode is 5 or less
+        //              or less characters long. Return true or false.
+        //-----------------------------------------------------------------------------------------------------------
+        private bool PadBarcode(ref string barcode, string ErrString)
+        {
+            if (barcode.Length <= 5 && barcode.Length > 0)
+            {
+                string msg = "The 5 or less characters barcode will be padded with ";
+                msg += (barcode.Length == 5) ? " a space. \n" : " spaces. \n";
+                msg += "Do you want to continue?";
+                DialogResult dialogue = MessageBox.Show(msg, ErrString, MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+                if (dialogue == DialogResult.No)
+                {
+                    return false;
+                }
+                else
+                {
+                    for (int a = barcode.Length; a < 6; a++)
+                        barcode = " " + barcode;
+                }
+            }
+            else
+            {
+                MessageBox.Show(ErrString + "\nBarcode must be 6-7 characters long.");
+                return false;
+            }
+            return true;
+        }
+
+        //-----------------------------------------------------------------------------------------------------------
         // Function name: bool CheckInputs(int i)
         // Description: Verify user input data -
         //              Return true if the data are valid, return false otherwise.
@@ -921,27 +954,8 @@ namespace DataManagerWindow
             if ((UserChangedBarcode[i].Length > 0) && (BarcodeBuffer[i] != UserChangedBarcode[i]) &&
                 (UserChangedBarcode[i].Length < 6 || UserChangedBarcode[i].Length > 7))
             {
-                if (UserChangedBarcode[i].Length <= 5 && UserChangedBarcode[i].Length > 0)
-                {
-                    string msg = "The 5 or less characters barcode will be padded with ";
-                    msg += (UserChangedBarcode[i].Length == 5) ? " a space. \n" : " spaces. \n";
-                    msg += "Do you want to continue?";
-                    DialogResult dialogue = MessageBox.Show(msg, ErrString, MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
-                    if (dialogue == DialogResult.No)
-                    {
-                        return false;
-                    }
-                    else
-                    {
-                        for (int a = UserChangedBarcode[i].Length; a < 6; a++)
-                            UserChangedBarcode[i] = " " + UserChangedBarcode[i];
-                    }
-                }
-                else
-                {
-                    MessageBox.Show(ErrString + "\nBarcode must be 6-7 characters long.");
+                if (!PadBarcode(ref UserChangedBarcode[i], ErrString))
                     return false;
-                }
             }
             else if(!UserChangedBarcode[i].All(c => char.IsLetterOrDigit(c)))
             {
@@ -971,7 +985,7 @@ namespace DataManagerWindow
                 return false;
             }
             
-            if ((UserChangedCatalog[i].Length > 0) && (CatalogNoBuffer[i] != UserChangedCatalog[i]) && 
+            if ((UserChangedCatalog[i].Length > 0) && (CatalogBuffer[i] != UserChangedCatalog[i]) && 
                 (UserChangedCatalog[i].Length < 8))
             {
                 MessageBox.Show(ErrString + "\nCatalog number must be 8 or more characters long.");
@@ -1055,6 +1069,30 @@ namespace DataManagerWindow
             return false;
         }
 
+        //-----------------------------------------------------------------------------------------------------------
+        // Function name:  private void AppendDataOnRecordText(int j, string [] splitData)
+        // Description: Append data on the Record Text box
+        //              Data are appened in the order - Barcode, D.S.R., and Catalog
+        //              Each data contains start byte address, data length, data, and CRC
+        //-----------------------------------------------------------------------------------------------------------
+        private void AppendDataOnRecordText(int j, string [] splitData)
+        {
+            RecordList.AppendText("   ");
+            // Address
+            RecordList.AppendText("0x" + splitData[j]);
+            RecordList.AppendText("        ");
+            // Length
+            RecordList.AppendText("0x" + splitData[j + 1]);
+            RecordList.AppendText("            ");
+            // Data
+            if (splitData[2].Contains("#"))
+                splitData[2] = splitData[2].Replace("#", " ");
+            RecordList.AppendText(splitData[j + 2]);
+            RecordList.AppendText("\n");
+            // CRC
+            RecordListCRC.AppendText(" 0x" + splitData[j + 3]);
+            RecordListCRC.AppendText("\n");
+        }
 
         //-----------------------------------------------------------------------------------------------------------
         // Function name:  private void DisplayDataRecord(string[] DataRecord)
@@ -1074,51 +1112,23 @@ namespace DataManagerWindow
                     // MessageBox.Show(DataRecord[i]);
                     if (splitData.Length == 4)
                     {
-                        RecordList.AppendText("   ");
-                        // Address
-                        RecordList.AppendText("0x" + splitData[0]);
-                        RecordList.AppendText("        ");
-                        // Length
-                        RecordList.AppendText("0x" + splitData[1]);
-                        RecordList.AppendText("            ");
-                        // Data
-                        if (splitData[2].Contains("#"))
-                            splitData[2] = splitData[2].Replace("#", " ");
-                        RecordList.AppendText(splitData[2]);
-                        RecordList.AppendText("\n");
-                        // CRC
-                        RecordListCRC.AppendText(" 0x" + splitData[3]);
-                        RecordListCRC.AppendText("\n");
+                        AppendDataOnRecordText(0, splitData);
                     }
                     else if (splitData.Length == 8)
                     {
                         for (int j = 0; j < 5; j = j + 4)
-                        {
-                            RecordList.AppendText("   ");
-                            // Address
-                            RecordList.AppendText("0x" + splitData[j]);
-                            RecordList.AppendText("        ");
-                            // Length
-                            RecordList.AppendText("0x" + splitData[j + 1]);
-                            RecordList.AppendText("            ");
-                            // Data
-                            if (splitData[2].Contains("#"))
-                                splitData[2] = splitData[2].Replace("#", " ");
-                            RecordList.AppendText(splitData[j + 2]);
-                            RecordList.AppendText("\n");
-                            // CRC
-                            RecordListCRC.AppendText(" 0x" + splitData[j + 3]);
-                            RecordListCRC.AppendText("\n");
-                        }
+                            AppendDataOnRecordText(j, splitData);
                     }
                     else
                     {
-                        //MessageBox.Show(DataRecord[i]);
+                        // for debugging purpose
+                        // MessageBox.Show(DataRecord[i]);
                         MessageBox.Show("Invalid data!");
                     }
                 }
                 else
                 {
+                    // for debugging purpose
                     MessageBox.Show("Data error!");
                 }
             }
@@ -1170,7 +1180,7 @@ namespace DataManagerWindow
                     string eraseFlag = "";
                     bool EraseBarcode = compute.EraseData(BarcodeBuffer[i], UserChangedBarcode[i], "Barcode", ref eraseFlag);
                     bool EraseDsr = compute.EraseData(DsrBuffer[i], UserChangedDSR[i], "DSR", ref eraseFlag);
-                    bool EraseCatalog = compute.EraseData(CatalogNoBuffer[i], UserChangedCatalog[i], "Catalog-number", ref eraseFlag);
+                    bool EraseCatalog = compute.EraseData(CatalogBuffer[i], UserChangedCatalog[i], "Catalog-number", ref eraseFlag);
                     if (EraseBarcode || EraseDsr || EraseCatalog)
                     {
                         string warning = "Do you want to erase " + compute.EraseDataFields(eraseFlag) + " \r\n";
@@ -1182,14 +1192,14 @@ namespace DataManagerWindow
                             string dsr = (EraseDsr == true) ? "y" : compute.GetDataToWrite(DsrBuffer[i], UserChangedDSR[i]);
                             string catalog; 
                             if (barcode.Length / 2 >= 7)
-                                catalog = compute.GetDataToWrite(CatalogNoBuffer[i], UserChangedCatalog[i], 1, DataReplacedCount[i]);
+                                catalog = compute.GetDataToWrite(CatalogBuffer[i], UserChangedCatalog[i], 1, DataReplacedCount[i]);
                             else if (dsr.Length / 2 >= 3 && dsr.Length / 2 <= 7)
-                                catalog = compute.GetDataToWrite(CatalogNoBuffer[i], UserChangedCatalog[i], 1, DataReplacedCount[i]);
+                                catalog = compute.GetDataToWrite(CatalogBuffer[i], UserChangedCatalog[i], 1, DataReplacedCount[i]);
                             else
-                                catalog = (EraseCatalog == true) ? "z" : compute.GetDataToWrite(CatalogNoBuffer[i], 
+                                catalog = (EraseCatalog == true) ? "z" : compute.GetDataToWrite(CatalogBuffer[i], 
                                     UserChangedCatalog[i],0, DataReplacedCount[i]);
                             DataToWrite[i] = tag + barcode + dsr + catalog;
-                            if ((barcode + dsr + catalog).Length > remainedBytes[i])
+                            if ((barcode + dsr + catalog).Length > BytesRemained[i])
                             {
                                 MemoryEnough = false;
                                 MessageBox.Show("No enough memory in ID tag " + (i + 1).ToString() + ".");
@@ -1201,9 +1211,9 @@ namespace DataManagerWindow
                     {
                         string barcode = compute.GetDataToWrite(BarcodeBuffer[i], UserChangedBarcode[i]);
                         string dsr = compute.GetDataToWrite(DsrBuffer[i], UserChangedDSR[i]);
-                        string catalog = compute.GetDataToWrite(CatalogNoBuffer[i], UserChangedCatalog[i], (barcode + dsr).Length, DataReplacedCount[i]);
+                        string catalog = compute.GetDataToWrite(CatalogBuffer[i], UserChangedCatalog[i], (barcode + dsr).Length, DataReplacedCount[i]);
                         DataToWrite[i] = tag + dataToWrite(barcode, dsr, catalog, UserChangedBarcode[i], UserChangedDSR[i], UserChangedCatalog[i]);
-                        if ((DataToWrite[i].Length  - 1)/2 > remainedBytes[i])
+                        if ((DataToWrite[i].Length  - 1)/2 > BytesRemained[i])
                         {
                             MemoryEnough = false;
                             MessageBox.Show("No enough memory in ID tag " + (i + 1).ToString() + ".");
@@ -1347,6 +1357,7 @@ namespace DataManagerWindow
                         Thread.Sleep(1);
                     }
                     serialPort1.Close();
+                    // ReloadData();
                 }
             }
         }
@@ -1354,12 +1365,12 @@ namespace DataManagerWindow
         //-----------------------------------------------------------------------------------------------------------
         // Function name:private string dataToWrite(string barcode, string dsr, string catalog, string currentBarcode,
         //                                          string currentDsr, string currentCatalog)
-        // Description: Compute and return data bytes to write into EPROM of an ID Tag
+        // Description: Compute and return data bytes 
         //-----------------------------------------------------------------------------------------------------------
         private string dataToWrite(string barcode, string dsr, string catalog, string currentBarcode,
                                                              string currentDsr, string currentCatalog)
         {
-            int[] array = { 1, 2 }; // dummy initialization - size is overiddedn
+            int[] array = { 1, 2 }; // dummy initialization - size is overidden
             if (barcode.Length > 0)
             {
                 if (currentDsr.Length > 0)
@@ -1380,7 +1391,9 @@ namespace DataManagerWindow
             return catalog;
         }
         
-        // Cancel tha action and close the window
+        //
+        // Cancel the action and close the window
+        // 
         private void CancelBotton_Click(object sender, EventArgs e)
         {
             DialogResult result = MessageBox.Show("Abort ID Tag content?", "ID Tag content", MessageBoxButtons.YesNo, MessageBoxIcon.Error);
@@ -1441,12 +1454,10 @@ namespace DataManagerWindow
                     if (response.Length >= 1)
                     {
                         data = data + "  " + response;
-                        this.progressBar1.Value = data.Length;
-                        // this.Progress.Text = ((progressBar1.Value / ProgressMax) * 100).ToString() + " %";
+                        this.progressBar1.Value = data.Length;                       
                         if (response.Contains("finished"))
                         {
-                            // ParseSerialString(data);
-                            compute.ParseSerialString(data, ref DataBuffer);
+                            compute.SerialStrToBytes(data, ref DataBuffer);
                             //MessageBox.Show(data);
                             serialPort1.Close();
                             return;
@@ -1458,7 +1469,9 @@ namespace DataManagerWindow
             return;
         }
 
-        // Check if input contains lower case chas(s)
+        //
+        // Check if input contains lower case char(s)
+        // 
         private bool InputContainsLowerChar(string InputText)
         {
             for (int i = 0; i < InputText.Length; i++)
@@ -1482,31 +1495,42 @@ namespace DataManagerWindow
             }
             else
             {
-                this.progressBar1.Visible = true;
-                this.progressBar1.Maximum = ProgressMax;
-                this.progressBar1.Minimum = 0;
-                this.progressBar1.Value = 0;
-                // this.Progress.Text = progressBar1.Value.ToString() + " %"; ;
-                this.progressBar1.ForeColor = Color.Blue;
-                EnableRecordDataTagList();
-                EnableHexDataTagList();
-                DataBuffer = new string[6];
-                for (int i = 0; i < 6; i++)
-                    DataBuffer[i] = " ";
-                DataRequest(serialPort1);
-                this.progressBar1.Value = 1900;
-                ClearAllDataFields();
-                EnableEditDataTagList();
-                // Fill the ID Tag data buffer
-                InitDataBuffer(DataBuffer);
-                // Read data contents from the appropriate text boxes
-                // - Barcode, DSR, and Catalog Number
-                ReadDataFields();
-                // Init Hex data column bar
-                HexDataCountBar();
-                this.progressBar1.Visible = false;
-                this.progressBar1.Value = 0;
+                ReloadData();
             }
+        }
+
+        //-----------------------------------------------------------------------------------------------------------
+        // Function name:  private void ReloadData()
+        // Description: Reload data from the memory
+        //-----------------------------------------------------------------------------------------------------------
+        private void ReloadData()
+        {
+            // Progress bar initialization
+            this.progressBar1.Visible = true;
+            this.progressBar1.Maximum = ProgressMax;
+            this.progressBar1.Minimum = 0;
+            this.progressBar1.Value = 0;
+            this.progressBar1.ForeColor = Color.Blue;
+            // Checkboxs init
+            EnableRecordDataTagList();
+            EnableHexDataTagList();
+            DataBuffer = new string[6];
+            for (int i = 0; i < 6; i++)
+                DataBuffer[i] = " ";
+            // Request data 
+            DataRequest(serialPort1);
+            this.progressBar1.Value = 1900;
+            ClearAllDataFields();
+            EnableEditDataTagList();
+            // Fill the ID Tag data buffer
+            InitDataBuffer(DataBuffer);
+            // Read data contents from the appropriate text boxes
+            // - Barcode, DSR, and Catalog Number
+            ReadDataFields();
+            // Init Hex data column bar
+            HexDataCountBar();
+            this.progressBar1.Visible = false;
+            this.progressBar1.Value = 0;
         }
 
         //-----------------------------------------------------------------------------------------------------------
