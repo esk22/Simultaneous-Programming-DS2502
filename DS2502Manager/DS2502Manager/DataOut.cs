@@ -15,7 +15,7 @@ namespace DS2502Manager
     class DataOut
     {
         private static string[] HexList;
-        DataIn inbytes;
+        DataIn BytesIn;
         crc _crc;
         //------------------------------------------------------------------------------------------------------------
         // Function name: public string GetDataPosLen(string Data, string type)
@@ -26,7 +26,8 @@ namespace DS2502Manager
         {
             string PosLen;
             HexList = new string[128];
-            inbytes.ParseStrToData(Data, ref HexList);
+            BytesIn = new DataIn();
+            BytesIn.ParseStrToData(Data, ref HexList);
             if (HexList[0] == "FF")
                 return "0000";
             int _crcPos = 0, _crc = 0, firstByte = 0;
@@ -105,7 +106,7 @@ namespace DS2502Manager
 
         //------------------------------------------------------------------------------------------------------------
         // Function name: public string CharToHex(string str, ref int [] data)
-        // Description: Convert ASCII to Hex data
+        // Description: Convert ASCII to Hex data, add length of the data at the beginning
         //------------------------------------------------------------------------------------------------------------
         public string CharToHex(string str, ref int[] data)
         {

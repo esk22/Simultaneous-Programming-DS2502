@@ -2,3 +2,4 @@ C:\Users\Arun\Desktop\MainGUI\DS2502Manager\DS2502Manager\bin\Debug\DS2502Manage
 C:\Users\Arun\Desktop\MainGUI\DS2502Manager\DS2502Manager\bin\Debug\DS2502Manager.pdb
 C:\Users\Arun\Desktop\MainGUI\DS2502Manager\DS2502Manager\obj\x86\Debug\DS2502Manager.exe
 C:\Users\Arun\Desktop\MainGUI\DS2502Manager\DS2502Manager\obj\x86\Debug\DS2502Manager.pdb
+C:\Users\Arun\Desktop\MainGUI\DS2502Manager\DS2502Manager\obj\x86\Debug\DS2502Manager.csprojResolveAssemblyReference.cache
