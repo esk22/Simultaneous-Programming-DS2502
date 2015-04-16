@@ -1,4 +1,4 @@
-﻿//****************************************************************************************************************************||
+//****************************************************************************************************************************||
 //----------------------------------------------------------------------------------------------------------------------------||
 // Project name            : Senior Capstone Design
 // Project term            : Fall 2014 - Spring 2015
@@ -1554,79 +1554,6 @@ namespace DS2502Manager
                 default:
                     break;
             }
-        }
-
-        //-----------------------------------------------------------------------------------------------------------
-        // Function name: bool CheckInputs(int i)
-        // Description: Verify user input data -
-        //              Return true if the data are valid, return false otherwise.
-        //-----------------------------------------------------------------------------------------------------------
-        private bool CheckInputs(int i)
-        {
-            string ErrString = "In Tag Number " + (i + 1).ToString() + " :";
-            if ((UserChangedBarcode[i].Length > 0) && (BarcodeBuffer[i] != UserChangedBarcode[i]) &&
-                (UserChangedBarcode[i].Length < 6 || UserChangedBarcode[i].Length > 7))
-            {
-                if (UserChangedBarcode[i].Length == 5)
-                {
-                    string msg = "The 5 or less characters barcode will be padded with ";
-                    msg += (UserChangedBarcode[i].Length == 5) ? " a space. \n" : " spaces. \n";
-                    msg += "Do you want to continue? (y/n) :";
-                    string response = Console.ReadLine();
-                    if (response == "N" || response == "n")
-                    {
-                        return false;
-                    }
-                    else
-                    {
-                        for (int a = UserChangedBarcode[i].Length; a < 6; a++)
-                            UserChangedBarcode[i] = " " + UserChangedBarcode[i];
-                    }
-                }
-                else
-                {
-                    Console.WriteLine(ErrString + "\nBarcode must be 6-7 characters long.");
-                    return false;
-                }
-            }
-            else if(!UserChangedBarcode[i].All(c => char.IsLetterOrDigit(c)))
-            {
-                if(UserChangedBarcode[i].Contains(" "))
-                {
-                    // The barcode is 5 or characters long and
-                    // it is padded with a space9s). -- do nothing
-                }
-                else
-                {
-                    Console.WriteLine(UserChangedBarcode[i] + " and " + UserChangedBarcode[i].Length.ToString());
-                    Console.WriteLine(ErrString + "\nBarcode must contain upper case letters and digits only.");
-                    return false;
-                }
-            }
-
-            if ((UserChangedDSR[i].Length > 0) && (DsrBuffer[i] != UserChangedDSR[i]) && (UserChangedDSR[i].Length > 5))
-            {
-                Console.WriteLine(ErrString + "\nDSR value must contain 5 or less characters.");
-                return false;
-            }
-            else if (!UserChangedDSR[i].All(c => char.IsLetterOrDigit(c)))
-            {
-                Console.WriteLine(ErrString + "\nDSR value must contain upper case letters and digits only.");
-                return false;
-            }
-            
-            if ((UserChangedCatalog[i].Length > 0) && (CatalogBuffer[i] != UserChangedCatalog[i]) && 
-                (UserChangedCatalog[i].Length < 8))
-            {
-                Console.WriteLine(ErrString + "\nCatalog number must be 8 or more characters long.");
-                return false;
-            }
-            else if (!UserChangedCatalog[i].All(c => char.IsLetterOrDigit(c)))
-            {
-                Console.WriteLine(ErrString + "\nCatalog number must contain capital letters and digits only.");
-                return false;
-            }
-            return true;
         }
 
         //----------------------------------------------------------------------------------
