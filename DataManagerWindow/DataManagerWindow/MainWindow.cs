@@ -410,6 +410,11 @@ namespace DataManagerWindow
                 PortSelectionList.Text = "  ";
                 PortDetected = false;
             }
+            else
+            {
+                //InitDataBuffer();
+                // OpenDataManagerWindow(PortName);
+            }
         }
 
         // Append PortName to the port selection list 
@@ -601,6 +606,13 @@ namespace DataManagerWindow
             return;
         }
 
+        // Initialize data buffer
+        private void InitDataBuffer()
+        {
+            for (int i = 0; i < 6; i++)
+                DataBuffer[i] = "";
+        }
+
         //----------------------------------------------------------------------------------
         // Function name: private void button1_Click(object sender, EventArgs e)
         // Description: Verify that the Hardware device is detected. If detected, 
@@ -612,8 +624,7 @@ namespace DataManagerWindow
             // InitPortSelectionList();
             if (ports.Length > 0)
             {
-                for (int i = 0; i < 6; i++)
-                    DataBuffer[i] = "";
+                InitDataBuffer();
                 string selected = this.PortSelectionList.GetItemText(this.PortSelectionList.SelectedItem);
                 if (selected != PortName) PortAutoDetect(serialPort1);
                 //MessageBox.Show(selected);

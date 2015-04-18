@@ -53,8 +53,11 @@ PUB go | a
     ' Intialization of buffers
     system.Clock(80_000_000)
     'TagsInit
-    tag1.start(10)
-    PGM := 22
+    'dira[15] := 1
+    'outa[15] := 1
+    tag1.start(14)
+    tag1.SendStr(string(" Pos: "))
+    PGM := 26
     ReadDevice1
 
                    
@@ -69,7 +72,8 @@ PRI ReadDevice1 | i, numDevices, addr1, x
     numDevices := tag1.search(tag1#REQUIRE_CRC, MAX_DEVICES, @addrs1)
     repeat i from 0 to MAX_DEVICES
         if i => numDevices
-            ' No device found
+            'No device numFound
+            tag1.SendStr(string(" NO device found: "))
             BytesRead[0] := 1
             BytesReady[0] := 1
         else
@@ -78,13 +82,14 @@ PRI ReadDevice1 | i, numDevices, addr1, x
                 SendChipSerialNo(addr1)
                 CRC1[0] := tag1#READ_MEMORY
                 'Write(127,127, $0D)
-                repeat x from 127 to 127
+                repeat x from $68 to $6C
                     CRC1[1] := x
                     CRC2[2] := 0
                     tag1.SendStr(string(" Pos: "))
                     tag1.SendDec(x)
                     tag1.SendStr(string(" Data: "))
                     tag1.SendHex(tag1.ReadAddressContent(x), 2)
+                    'tag1.ByteToMemory(x, 0, PGM)
                     tag1.SetNewLine
                 tag1.SendStr(String("tag1end"))
                 BytesRead[0] := 1

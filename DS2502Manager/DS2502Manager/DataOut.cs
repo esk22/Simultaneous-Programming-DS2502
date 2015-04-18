@@ -139,7 +139,7 @@ namespace DS2502Manager
 
             else
             {
-                if (dataLen == 0)
+                if (dataLen == 0 && len == 0)
                 {
                     bool replaced = true;
                     string catalog = (CharToHex((ChangedCatalogNumber(previous, current, ref replaced, len)), ref array) + _crc.crc8(array));
@@ -150,6 +150,8 @@ namespace DS2502Manager
                 }
                 else
                 {
+                    // if len > 0 - length of the previously replaced data - , data replacement in the catalog number
+                    // has previously occured. Replacement can no longer be done.
                     return (CharToHex(current, ref array) + _crc.crc8(array));
                 }
             }
@@ -206,7 +208,7 @@ namespace DS2502Manager
         {
             foreach (string element in DataToWrite)
             {
-                if (element.Length > 1)
+                if (element.Length > 2)
                 {
                     return true;
                 }

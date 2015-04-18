@@ -442,7 +442,7 @@ PUB WriteBytesToMemory(PGM, tag) | a, erase_start, erase_end, write_start, write
                     PORT.Str(string(" <> //// "))
                     repeat a from erase_start to (erase_end)
                         data_value := ReadAddressContent(a)
-                        if(data_value > $FF and data_value < $00)
+                        if(data_value < $FF and data_value > $00)
                             ByteToMemory(a, 0, PGM)
             else
                 write_start := 0

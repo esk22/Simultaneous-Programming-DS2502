@@ -394,14 +394,14 @@ Ignores all non-digit characters (except negative (-) when base is decimal (10))
       
 PUB WriteBytesToMemory(PGM, tag) | a, erase_start, erase_end, write_start, write_end, i, data_value
     i := 0
+    PORT.Str(string("Tag Number: <> "))
+    PORT.Dec(tag)
+    PORT.Str(string(" <> "))
     ReadAddressContent(0) ' Reading/Writing initiation
     if (DataTag[counter - 1] == "j")
         erase_end := StrToBase(strJoin(@DataTag[dataStart+3], @DataTag[dataStart+4]), 16)
         write_start := WriteStartAddress(erase_end + 1)
         ' No erasing data required in this case
-        PORT.Str(string("Tag Number: <> "))
-        PORT.Dec(tag)
-        PORT.Str(string(" <> "))
         PORT.Str(string("Start Address <> "))
         PORT.Hex(write_start, 2)
         PORT.Str(string(" <> DATA <> "))
@@ -422,9 +422,6 @@ PUB WriteBytesToMemory(PGM, tag) | a, erase_start, erase_end, write_start, write
         return
     else
         if ((counter - 1) == dataStart)
-            PORT.Str(string("Tag Number: <> "))
-            PORT.Dec(tag)
-            PORT.Str(string(" <> "))
             EraseBytes(dataStart, erase_start, erase_end, PGM)
         elseif ((counter - 1) > dataStart)
             erase_start := StrToBase(strJoin(@DataTag[dataStart+1], @DataTag[dataStart+2]), 16)
@@ -433,9 +430,6 @@ PUB WriteBytesToMemory(PGM, tag) | a, erase_start, erase_end, write_start, write
                 write_start := WriteStartAddress(erase_end + 1)
                 if (erase_end > 0 and (erase_end > erase_start)) 'erase_start >= 0 and
                     'erase data
-                    PORT.Str(string("Tag Number: <> "))
-                    PORT.Dec(tag)
-                    PORT.Str(string(" <> "))
                     PORT.Str(string(" Erase bytes -- Start Address <> "))
                     PORT.Hex(erase_start, 2)
                     PORT.Str(string(" End Address <> "))
@@ -443,14 +437,11 @@ PUB WriteBytesToMemory(PGM, tag) | a, erase_start, erase_end, write_start, write
                     PORT.Str(string(" <> //// "))
                     repeat a from erase_start to (erase_end)
                         data_value := ReadAddressContent(a)
-                        if(data_value > $FF and data_value < $00)
+                        if(data_value < $FF and data_value > $00)
                             'ByteToMemory(a, 0, PGM)
             else
                 write_start := 0
             write_end := (counter - dataStart - 5)/2 - 1
-            PORT.Str(string("Tag Number: <> "))
-            PORT.Dec(tag)
-            PORT.Str(string(" <> "))
             EraseBytes(dataStart, erase_start, erase_end, PGM)
             'PORT.Dec((counter - dataStart - 5)/2 - 1)
             PORT.Str(string(" Write Start address <> "))

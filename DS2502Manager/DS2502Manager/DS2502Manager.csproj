@@ -46,6 +46,7 @@
     <Compile Include="crc8.cs" />
     <Compile Include="DataIn.cs" />
     <Compile Include="DataOut.cs" />
+    <Compile Include="HelpMenu.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

@@ -1,4 +1,4 @@
-//****************************************************************************************************************************||
+﻿//****************************************************************************************************************************||
 //----------------------------------------------------------------------------------------------------------------------------||
 // Project name            : Senior Capstone Design
 // Project term            : Fall 2014 - Spring 2015
@@ -40,9 +40,14 @@ namespace DS2502Manager
         private static string[] BarcodeBuffer;
         private static string[] DsrBuffer;
         private static string[] CatalogBuffer;
-        private static string[] ExtraDsr;
+        private static string[] UserInputExtraDsr;
+        private static string[] ExistingDsrs;
         // Data as string
         private static string[] HexList;
+        private static string[] RecentBarcode;
+        private static string[] RecentDsr;
+        private static string[] RecentCatalog;
+
         // Data buffer
         private static string[] TagsDataBuffer;
         // Other buffers
@@ -58,10 +63,12 @@ namespace DS2502Manager
         private static bool portDetected;
         private static string portName;
 
+        // Objects
         DataIn input;
         DataOut output;
         crc _crc;
-
+        HelpMenu help;
+        // Serial port
         SerialPort serialPort;
         
         // Main function
@@ -69,6 +76,55 @@ namespace DS2502Manager
         {
             Program program = new Program();
             program.ProcessData(args);
+        }
+
+        //-----------------------------------------------------------------------------------------------------------
+        // Function name: private void NewArrays()
+        // Description: Define arrays
+        //-----------------------------------------------------------------------------------------------------------
+        private void NewArrays()
+        {
+            TagsDataBuffer = new string[6];
+            DataRecord = new string[3];
+            remainedBytes = new int[6];
+            UserChangedBarcode = new string[6];
+            UserChangedDSR = new string[6];
+            UserChangedCatalog = new string[6];
+            UserInputExtraDsr = new string[6];
+            ExistingDsrs = new string[6];
+            HexList = new string[128];
+            BarcodeBuffer = new string[6];
+            DsrBuffer = new string[6];
+            CatalogBuffer = new string[6];
+            IDChipExist = new bool[6];
+            TagAvailable = new int[6];
+            RecentBarcode = new string[6];
+            RecentDsr = new string[6];
+            RecentCatalog = new string[6];
+            DataReplacedCount = new int[6];
+        }
+
+        //-----------------------------------------------------------------------------------------------------------
+        // Function name: private void InitArrays()
+        // Description: Initialize arrays
+        //-----------------------------------------------------------------------------------------------------------
+        private void InitArrays()
+        {
+            for (int i = 0; i < 3; i++)
+                DataRecord[i] = "a";
+            for (int j = 0; j < 6; j++)
+            {
+                remainedBytes[j] = 127;
+                TagAvailable[j] = 0;
+                TagsDataBuffer[j] = "";
+                BarcodeBuffer[j] = "";
+                DsrBuffer[j] = "";
+                CatalogBuffer[j] = "";
+                UserInputExtraDsr[j] = "";
+                ExistingDsrs[j] = "";
+            }
+            for (int m = 0; m <= 127; m++)
+                HexList[m] = "FF";
         }
 
         //-----------------------------------------------------------------------------------------------------------
@@ -81,6 +137,7 @@ namespace DS2502Manager
             input = new DataIn();
             output = new DataOut();
             _crc = new crc();
+            help = new HelpMenu();
             ReadingComplete = true;
             portDetected = false;
             int tag = 0;
@@ -120,6 +177,10 @@ namespace DS2502Manager
                         }
                     }
                 }
+                else if (args[0] == "help" || args[0] == "Help" || args[0] == "HELP")
+                {
+                    help.HelpCommand(args);
+                }
             }
             else if (args.Length == 1)
             {
@@ -131,6 +192,7 @@ namespace DS2502Manager
                         {
                             if (TagsDataBuffer[m].Length > 1)
                             {
+                                // Console.WriteLine(TagsDataBuffer[m].Length.ToString() + " exists.");
                                 ComputeDataFields(TagsDataBuffer[m], m);
                                 IDChipExist[m] = true;
                             }
@@ -146,23 +208,28 @@ namespace DS2502Manager
                             Console.WriteLine("\nID Chip " + AvailableChips + " is available for programming.");
                         else if (tags > 1)
                             Console.WriteLine("\nID Chips " + AvailableChips + " are available for programming.");
-
                         bool verified = false;
                         string number = "";
                         int tagId = 0;
-                        Console.Write("Number of ID Chips to program : ");
                         while (!verified)
                         {
+                            Console.Write("Number of ID Chips to program : ");
                             number = Console.ReadLine();
-                            if (IsTagIDValid(number, ref tagId))
+                            if (number.Length > 0)
                             {
-                                verified = true;
-                            }
-                            else
-                            {
-                                Console.Write("Enter the number of ID Chips : ");
+                                if (IsTagIDValid(number, ref tagId))
+                                    verified = true;
+                                else
+                                    Console.Write("Enter the number of ID Chips : ");
                             }
                         }
+                        for (int i = 0; i < TagsDataBuffer.Length; i++)
+                        {
+                            input.GetRecordList(TagsDataBuffer[i], ref DataRecord);
+                            // Buffer existing DSR(s)
+                            BufferExistingDsr(DataRecord, i);
+                        }
+                        // Write command
                         WriteCommand(tagId);
                     }
                 }
@@ -205,73 +272,27 @@ namespace DS2502Manager
                 if (TagsDataBuffer[i].Length > 0)
                 {
                     if (i == TagsDataBuffer.Length - 1)
-                    {
                         tags += " and " + (i + 1).ToString();
-                    }
                     else if (count > 0 && i < (TagsDataBuffer.Length - 1))
-                    {
                         tags += ", " + (i + 1).ToString();
-                    }
                     else
-                    {
                         tags += (i + 1).ToString();
-                    }
                     count++;
                 }
             }
             return tags;
         }
 
-        //-----------------------------------------------------------------------------------------------------------
-        // Function name: private void InitComponents()
-        // Description: initialize the components
-        //-----------------------------------------------------------------------------------------------------------
-        private void InitComponents()
+        // Init current data buffer after
+        // user makes changes in the data fields
+        private void InitCurrentbuffer()
         {
-            ReadingComplete = true;
-        }
-
-        //-----------------------------------------------------------------------------------------------------------
-        // Function name: private void NewArrays()
-        // Description: Define arrays
-        //-----------------------------------------------------------------------------------------------------------
-        private void NewArrays()
-        {
-            TagsDataBuffer = new string[6];
-            DataRecord = new string[3];
-            remainedBytes = new int[6];
-            UserChangedBarcode = new string[6];
-            UserChangedDSR = new string[6];
-            UserChangedCatalog = new string[6];
-            ExtraDsr = new string[6];
-            HexList = new string[128];
-            BarcodeBuffer = new string[6];
-            DsrBuffer = new string[6];
-            CatalogBuffer = new string[6];
-            IDChipExist = new bool[6];
-            TagAvailable = new int[6];
-        }
-
-        //-----------------------------------------------------------------------------------------------------------
-        // Function name: private void InitArrays()
-        // Description: Initialize arrays
-        //-----------------------------------------------------------------------------------------------------------
-        private void InitArrays()
-        {
-            for (int i = 0; i < 3; i++)
-                DataRecord[i] = "a";
-            for (int j = 0; j < 6; j++)
+            for (int i = 0; i < TagsDataBuffer.Length; i++)
             {
-                remainedBytes[j] = 127;
-                TagAvailable[j] = 0;
-                TagsDataBuffer[j] = "";
-                BarcodeBuffer[j] = "";
-                DsrBuffer[j] = "";
-                CatalogBuffer[j] = "";
-                ExtraDsr[j] = "";
+                RecentBarcode[i] = "";
+                RecentDsr[i] = "";
+                RecentCatalog[i] = "";
             }
-            for (int m = 0; m <= 127; m++)
-                HexList[m] = "FF";
         }
 
         //-----------------------------------------------------------------------------------------------------------
@@ -288,24 +309,24 @@ namespace DS2502Manager
                 {
                     Console.Write("\n" + chip.ToString() + ") Enter command : ");
                     string command = Console.ReadLine();
-                    Console.WriteLine(command);
-                    if (IsWriteCommandValid(command))
+                    // Console.WriteLine(command);
+                    if (command.Length > 0)
                     {
-                         Console.WriteLine("Command is valid");
-                         error = false;
+                        if (IsWriteCommandValid(command))
+                        {
+                            // Console.WriteLine("Command is valid");
+                            error = false;
+                        }
                     }
                 }
                 chip++;
             }
 
-            for (int i = 0; i < 6; i++)
-            {
-                Console.Write("Tag : " + (i + 1).ToString() + " " + UserChangedBarcode[i] + "  " + UserChangedDSR[i] + "  " + UserChangedCatalog[i]);
-                Console.WriteLine("  extra dsr " + ExtraDsr[i]);
-            }
-            // Write command validated
+            InitCurrentbuffer();
+            RecentDataBuffer();
+            // Write command(s) validated
             // Execuate writing operation
-           ExecuateCommand();
+           ExecuateCommand("write");
         }
 
         //-----------------------------------------------------------------------------------------------------------
@@ -325,7 +346,7 @@ namespace DS2502Manager
                     {
                         if (a == 1)
                         {
-                            if ((CmdArray.Length <= 7) && (!CmdArray[a].Contains('|')))
+                            if ((CmdArray[a].Length <= 7) && (!CmdArray[a].Contains('|')))
                             {
                                 if (!IsBarcodeValid(CmdArray[a], tag - 1))
                                 {
@@ -333,19 +354,20 @@ namespace DS2502Manager
                                     break;
                                 }
                             }
-                            else if (CmdArray[a].Length > 1 && CmdArray[a].Contains('|'))
+                            else if (CmdArray[a].Length > 1 && CmdArray[a].Length < 7 && CmdArray[a].Contains('|'))
                             {
                                 if (CmdArray[a].Contains('|'))
                                 {
                                     if (!IsDsrValid(CmdArray[a], tag - 1))
                                     {
-                                        Console.WriteLine("hello where");
+                                        // Console.WriteLine("debug ");
                                         InputIsValid = false;
                                         break;
                                     }
                                 }
                                 else
                                 {
+                                    // Console.WriteLine("Error: catalog not recognized");
                                     if (!IsBarcodeValid(CmdArray[a], tag - 1))
                                     {
                                         InputIsValid = false;
@@ -353,9 +375,9 @@ namespace DS2502Manager
                                     }
                                 }
                             }
-                            else if(CmdArray[a].Length > 8)
+                            else if(CmdArray[a].Length >= 8)
                             {
-                                Console.WriteLine("hello where " + CmdArray[a].Length.ToString() + " " + CmdArray[a]);
+                               //  Console.WriteLine(" debug " + CmdArray[a].Length.ToString() + " " + CmdArray[a]);
                                 if (!IsCatalogValid(CmdArray[a], tag - 1))
                                 {
                                     InputIsValid = false;
@@ -447,7 +469,7 @@ namespace DS2502Manager
         //-----------------------------------------------------------------------------------------------------------
         private bool IsDsrValid(string dsr, int tag)
         {
-            bool IsDsrNotValid = true, extraDsr = false;
+            bool IsDsrNotValid = true, MultipleDsr = false;
             string dsrs = "";
             while (IsDsrNotValid)
             {
@@ -462,20 +484,28 @@ namespace DS2502Manager
                         if (DsrArray[a].All(c => Char.IsLetterOrDigit(c)))
                         {
                             DsrCount++;
-                            //if (a == DsrArray.Length - 1)
-                            if (DsrCount == 1)
+                            if (VerifyUserInputData(DsrArray[a], ExistingDsrs[tag], "dsr", (tag + 1)))
                             {
-                                UserChangedDSR[tag] = DsrArray[a].ToUpper();
+                                if (DsrCount == 1)
+                                {
+                                    UserChangedDSR[tag] = DsrArray[a].ToUpper();
+                                }
+                                else
+                                {
+                                    int[] array = { 1, 2, 3 };
+                                    DsrArray[a] = DsrArray[a].ToUpper();
+                                    dsrs = output.CharToHex(DsrArray[a], ref array) + _crc.crc8(array) + dsrs;
+                                    MultipleDsr = true;
+                                }
+                                if (a == 0)
+                                    IsDsrNotValid = false;
                             }
                             else
                             {
-                                int[] array = { 1, 2, 3 };
-                                DsrArray[a] = DsrArray[a].ToUpper();
-                                dsrs = output.CharToHex(DsrArray[a], ref array) + _crc.crc8(array) + dsrs;
-                                extraDsr = true;
+                                Console.Write("Enter the DSR(s) again : ");
+                                dsr = Console.ReadLine();
+                                error = true;
                             }
-                            if (a == 0)
-                                IsDsrNotValid = false;
                         }
                         else
                         {
@@ -497,8 +527,8 @@ namespace DS2502Manager
                     a--;
                 }
             }
-            if (extraDsr)
-                ExtraDsr[tag] = dsrs;
+            if (MultipleDsr)
+                UserInputExtraDsr[tag] = dsrs;
             if (!IsDsrNotValid)
                 return true;
             return false;
@@ -518,9 +548,18 @@ namespace DS2502Manager
                 {
                     if (barcode.All(c => Char.IsLetterOrDigit(c)))
                     {
-                        UserChangedBarcode[tag] = barcode.ToUpper();
-                        IsBarcodNotValid = false;
-                        return true;
+                        barcode = barcode.ToUpper();
+                        if (VerifyUserInputData(barcode, BarcodeBuffer[tag], "barcode", (tag + 1)))
+                        {
+                            UserChangedBarcode[tag] = barcode;
+                            IsBarcodNotValid = false;
+                            return true;
+                        }
+                        else
+                        {
+                            Console.Write("Enter the barcode again : ");
+                            barcode = Console.ReadLine();
+                        }
                     }
                     else
                     {
@@ -531,18 +570,40 @@ namespace DS2502Manager
                 }
                 else if (barcode.Length > 0 && barcode.Length < 6)
                 {
-                    Console.WriteLine("\nIn ID Chip " + (tag + 1).ToString() + " the barcode with 5 or less characters will be padded with leading space(s).");
-                    Console.Write("Do you want to continue ? (y/n) : ");
-                    string response = Console.ReadLine();
-                    if (response == "y")
+                    bool UnrecognizedResponse = true;
+                    while (UnrecognizedResponse)
                     {
-                        barcode = barcode.ToUpper();
-                        for (int i = barcode.Length; i < 6; i++)
-                            barcode = " " + barcode;
-                        UserChangedBarcode[tag] = barcode;
+                        Console.WriteLine("\nIn ID Chip " + (tag + 1).ToString() + " the barcode with 5 or less characters will be padded with leading space(s).");
+                        Console.Write("Do you want to continue ? (y/n) : ");
+                        string response = Console.ReadLine();
+                        if (response == "y")
+                        {
+                            barcode = barcode.ToUpper();
+                            for (int i = barcode.Length; i < 6; i++)
+                                barcode = " " + barcode;
+                            if (VerifyUserInputData(barcode, BarcodeBuffer[tag], "barcode", (tag + 1)))
+                            {
+                                UserChangedBarcode[tag] = barcode;
+                                IsBarcodNotValid = false;
+                                return true;
+                            }
+                            else
+                            {
+                                Console.Write("Enter the barcode again : ");
+                                barcode = Console.ReadLine();
+                            }
+                            UnrecognizedResponse = false;
+                        }
+                        else if (response == "n")
+                        {
+                            UnrecognizedResponse = false;
+                            return true;
+                        }
+                        else
+                        {
+                            Console.Write("\nUnrecognized response: ");
+                        }
                     }
-                    IsBarcodNotValid = false;
-                    return true;
                 }
                 else
                 {
@@ -555,13 +616,82 @@ namespace DS2502Manager
         }
 
         //-----------------------------------------------------------------------------------------------------------
+        // Function name: private bool VerifyUserInputData(string current, string previous, string type, int tag)
+        // Description: Check if the user input data already exists, return true or false
+        //-----------------------------------------------------------------------------------------------------------
+        private bool VerifyUserInputData(string current, string previous, string type, int tag)
+        {
+            switch (type)
+            {
+                case "barcode":
+                    {
+                        if (previous == current && previous.Length > 0 && current.Length > 0)
+                        {
+                            Console.WriteLine("The barcode " + current + " already exists in ID Chip " + tag.ToString() + ".");
+                            return false;
+                        }
+                    }
+                    break;
+                case "dsr":
+                    {
+                        if (previous.Length > 0 && current.Length > 0)
+                        {
+                            string[] prev_dsr = previous.Split(' ');
+                            foreach (string existing_dsr in prev_dsr)
+                            {
+                                if (current == existing_dsr)
+                                {
+                                    Console.WriteLine("The DSR " + current + " already exists in ID Chip " + tag.ToString() + ".");
+                                    return false;
+                                }
+                            }
+                        }
+                    }
+                    break;
+                case "catalog":
+                    {
+                        if (previous == current && previous.Length > 0 && current.Length > 0)
+                        {
+                            Console.WriteLine("The Catalog number " + current + " already exists in ID Chip " + tag.ToString() + ".");
+                            return false;
+                        }
+                    }
+                    break;
+                default:
+                    break;
+            }
+            return true;
+        }
+
+        //-----------------------------------------------------------------------------------------------------------
+        // Function name: private void BufferExistingDsr(string dsr, int tag)
+        // Description: Record existing DSR values in a buffer
+        //-----------------------------------------------------------------------------------------------------------
+        private void BufferExistingDsr(string [] DataRecord, int tag)
+        {
+            for (int i = 0; i < DataRecord.Length; i++)
+            {
+                string[] splitData = DataRecord[i].Split(' ');
+                if (splitData.Length == 4)
+                {
+                    int len = Convert.ToInt32(splitData[1], 16);
+                    if (len <= 6)
+                        ExistingDsrs[tag] += " " + splitData[2];
+                }
+            }
+        }
+
+        //-----------------------------------------------------------------------------------------------------------
         // Function name: private void Read(int tag, string display)
         // Description: Read data bytes from the ID Chip(s)
         //-----------------------------------------------------------------------------------------------------------
         private bool Read(int tag, string display, string operation = "read")
         {
-            Console.WriteLine(" \n Searching for hardware...............................");
-            Console.WriteLine("\n|***************************************************************************|");
+            if (operation != "reload")
+            {
+                Console.WriteLine(" \n Searching for hardware...............................");
+                Console.WriteLine("\n|***************************************************************************|");
+            }
             DataBuffer = new string[6];
             for (int i = 0; i < 6; i++)
                 DataBuffer[i] = "";
@@ -789,18 +919,34 @@ namespace DS2502Manager
                         }
                     }
                 }
-                bool NoChip = false;
+                bool ChipExists = true;
                 for (int n = 0; n < TagsDataBuffer.Length; n++)
                 {
                     if (TagsDataBuffer[n].Length < 1 && Commands[n].Length >= 1)
                     {
                         Console.WriteLine("Error: ID Tag " + (n + 1).ToString() + " does not exist.");
-                        NoChip = true;
+                        ChipExists = false;
                         break;
                     }
                 }
-                if(!NoChip)
-                    ExecuateCommand();
+                if (ChipExists)
+                {
+                    InitCurrentbuffer();
+                    RecentDataBuffer();
+                    ExecuateCommand("erase");
+                }
+            }
+        }
+
+        // Init recent buffer
+        private void RecentDataBuffer()
+        {
+            for (int i = 0; i < TagsDataBuffer.Length; i++)
+            {
+                // Console.WriteLine(UserChangedBarcode[i] + "   " + UserChangedDSR[i] + "  " + UserChangedCatalog[i]);
+                RecentBarcode[i] = UserChangedBarcode[i];
+                RecentDsr[i] = UserChangedDSR[i];
+                RecentCatalog[i] = UserChangedCatalog[i];
             }
         }
 
@@ -808,15 +954,13 @@ namespace DS2502Manager
         // Function name:  private void ExecuateCommand(string[] Commands)
         // Description: Execuate command
         //-----------------------------------------------------------------------------------------------------------
-        private void ExecuateCommand()
+        private void ExecuateCommand(string operation)
         {
             DataToWrite = new string[6];
             for (int i = 0; i < 6; i++)
-            {
                 DataToWrite[i] = "";
-            }
-            // This function sends commands to the Hardware
-            SendDataToPropeller();
+            // This function sends commands and data to hardware
+            SendDataToPropeller(operation);
         }
 
         //-----------------------------------------------------------------------------------------------------------
@@ -829,54 +973,83 @@ namespace DS2502Manager
         //              - Order data bytes in sequence
         //              - Write data bytes to the Serial Port
         //-----------------------------------------------------------------------------------------------------------
-        private void SendDataToPropeller()
+        private void SendDataToPropeller(string operation)
         {
-            bool MemoryEnough = true;
+            if (operation == "write")
+            {
+                Console.WriteLine("\r\nWriting.............");
+                Console.WriteLine(" ID Chip    Barcode                  DSR                                                 Catalog ");
+                Console.WriteLine(" -------------------------------------------------------------------------------------------------------------");
+            }
+            else if (operation == "erase")
+            {
+                Console.WriteLine("\r\nErasing data.............");
+            }
+
+            bool MemoryIsEnough = true;
             for (int i = 0; i < IDChipExist.Length; i++)
             {
                 if (IDChipExist[i])
                 {
-                    // Console.WriteLine(i.ToString());
+                    // Console.WriteLine(i.ToString() + " exists.") ;
                     string tag = output.GetTag(i);
                     // An alphabetic code is assinged for erasing a data field
                     // Erase Barcode = x
                     // Erase DSR = y
                     // Erase Catalog number = z
                     string eraseFlag = "";
-                    // Console.WriteLine(BarcodeBuffer[i] + " " + UserChangedBarcode[i]);
+                    // Console.WriteLine(CatalogBuffer[i] + " catalog ** " + UserChangedCatalog[i]);
                     bool EraseBarcode = output.EraseData(BarcodeBuffer[i], UserChangedBarcode[i], "Barcode", ref eraseFlag);
                     bool EraseDsr = output.EraseData(DsrBuffer[i], UserChangedDSR[i], "DSR", ref eraseFlag);
                     bool EraseCatalog = output.EraseData(CatalogBuffer[i], UserChangedCatalog[i], "Catalog-number", ref eraseFlag);
                     // Console.WriteLine(i.ToString());
                     if (EraseBarcode || EraseDsr || EraseCatalog)
                     {
-                        
-                        string warning = "Do you want to erase " + output.EraseDataFields(eraseFlag) + " \r\n";
-                        warning += "from ID Tag " + (i + 1).ToString() + " ? (y/n) : ";
-                        Console.Write(warning);
-                        string response = Console.ReadLine();
                         string barcode = "", dsr = "", catalog = "";
-                        if (response == "y")
+                        bool UnrecognizedResponse = true;
+                        while (UnrecognizedResponse)
                         {
-                            barcode = (EraseBarcode == true) ? "x" : output.GetDataToWrite(BarcodeBuffer[i], UserChangedBarcode[i]);
-                            dsr = (EraseDsr == true) ? "y" : output.GetDataToWrite(DsrBuffer[i], UserChangedDSR[i]);
-                            if (barcode.Length / 2 >= 7)
-                                catalog = output.GetDataToWrite(CatalogBuffer[i], UserChangedCatalog[i], 1, DataReplacedCount[i]);
-                            else if (dsr.Length / 2 >= 3 && dsr.Length / 2 <= 7)
-                                catalog = output.GetDataToWrite(CatalogBuffer[i], UserChangedCatalog[i], 1, DataReplacedCount[i]);
+                            string warning = "Do you want to erase " + output.EraseDataFields(eraseFlag) + " ";
+                            warning += "from ID Tag " + (i + 1).ToString() + " ? (y/n) : ";
+                            Console.Write(warning);
+                            string response = Console.ReadLine();
+                            barcode = ""; dsr = ""; catalog = "";
+                            if (response == "y")
+                            {
+                                barcode = (EraseBarcode == true) ? "x" : output.GetDataToWrite(BarcodeBuffer[i], UserChangedBarcode[i]);
+                                dsr = (EraseDsr == true) ? "y" : output.GetDataToWrite(DsrBuffer[i], UserChangedDSR[i]);
+                                // this is acutally a catalog-number
+                                if (barcode.Length / 2 >= 7)
+                                    catalog = output.GetDataToWrite(CatalogBuffer[i], UserChangedCatalog[i], 1, DataReplacedCount[i]);
+                                else if (dsr.Length / 2 >= 3 && dsr.Length / 2 <= 7)
+                                    catalog = output.GetDataToWrite(CatalogBuffer[i], UserChangedCatalog[i], 1, DataReplacedCount[i]);
+                                else
+                                    catalog = (EraseCatalog == true) ? "z" : output.GetDataToWrite(CatalogBuffer[i],
+                                        UserChangedCatalog[i], 0, DataReplacedCount[i]);
+                                UnrecognizedResponse = false;
+                            }
+                            else if (response == "n")
+                            {
+                                UnrecognizedResponse = false;
+                            }
                             else
-                                catalog = (EraseCatalog == true) ? "z" : output.GetDataToWrite(CatalogBuffer[i],
-                                    UserChangedCatalog[i], 0, DataReplacedCount[i]);
+                            {
+                                Console.Write("\nUnrecognized response: \n");
+                            }
                         }
 
-                        if (ExtraDsr[i].Length >= 3)
-                            dsr = ExtraDsr[i] + dsr;
+                        if (UserInputExtraDsr[i].Length >= 3)
+                            dsr = UserInputExtraDsr[i] + dsr;
                         DataToWrite[i] = tag + barcode + dsr + catalog;
                         if ((barcode + dsr + catalog).Length > remainedBytes[i])
                         {
-                            MemoryEnough = false;
+                            MemoryIsEnough = false;
                             Console.WriteLine("No enough memory in ID tag " + (i + 1).ToString() + ".\n");
                             break;
+                        }
+                        else
+                        {
+                            DisplayDataToWrite(barcode, dsr, catalog, i + 1);
                         }
                     }
                     else
@@ -884,24 +1057,81 @@ namespace DS2502Manager
                         string barcode = output.GetDataToWrite(BarcodeBuffer[i], UserChangedBarcode[i]);
                         string dsr = output.GetDataToWrite(DsrBuffer[i], UserChangedDSR[i]);
                         string catalog = output.GetDataToWrite(CatalogBuffer[i], UserChangedCatalog[i], (barcode + dsr).Length, DataReplacedCount[i]);
-                        DataToWrite[i] = tag + dataToWrite(barcode, dsr, catalog, UserChangedBarcode[i], UserChangedDSR[i], UserChangedCatalog[i], ExtraDsr[i]);
+                        // Console.Write(" Barcode : " + UserChangedBarcode[i] + " Dsr : " + UserChangedDSR[i] + " Catalog : " + UserChangedCatalog[i] + "  ");
+                        //Console.Write("Writing Barcode : " + barcode + " DSR : " + UserInputExtraDsr[i] + dsr + " Catalog Number: " + catalog);
+                        //Console.WriteLine(" to ID Chip " + (i + 1).ToString());
+                        
+                        DataToWrite[i] = tag + dataToWrite(barcode, dsr, catalog, UserChangedBarcode[i], UserChangedDSR[i], UserChangedCatalog[i], UserInputExtraDsr[i]);
                         if ((DataToWrite[i].Length - 1) / 2 > remainedBytes[i])
                         {
-                            MemoryEnough = false;
+                            MemoryIsEnough = false;
                             Console.WriteLine("No enough memory in ID tag " + (i + 1).ToString() + ".\n");
                             break;
+                        }
+                        else
+                        {
+                            DisplayDataToWrite(barcode, UserInputExtraDsr[i] + dsr, catalog, i + 1);
                         }
                     }
                     // Mark data types
                     MarkDataTypes(i, tag);
                 }
             }
-            if (MemoryEnough)
+           
+            if (MemoryIsEnough && Continue())
             {
                 if (output.DataFieldChanged(DataToWrite))
                 {
-                    WriteDataToSerialPort(DataToWrite);
+                    WriteDataToSerialPort(DataToWrite, operation);
                 }
+            }
+        }
+
+        // Check if user wants to continue 
+        // Return true or false
+        private bool Continue()
+        {
+            bool ResponseRecognized = false;
+            while (!ResponseRecognized)
+            {
+                Console.Write("\r\nDo you want to continue ? (y/n) : ");
+                string response = Console.ReadLine();
+                if (response == "y")
+                {
+                    return true;
+                }
+                else if (response == "n")
+                {
+                    Console.WriteLine("Program terminated.");
+                    return false;
+                }
+                else
+                {
+                    Console.WriteLine("Unrecognized response:");
+                }
+            }
+            return true;
+        }
+
+        //-----------------------------------------------------------------------------------------------------------
+        // Function name:  private void DisplayDataToWrite(string barcode, string dsr, string catalog, int tag)
+        // Description: Return data field names
+        //-----------------------------------------------------------------------------------------------------------
+        private void DisplayDataToWrite(string barcode, string dsr, string catalog, int tag)
+        {
+            if (barcode.Length > 0 || dsr.Length > 0 || catalog.Length > 0)
+            {
+                Console.Write("    " + tag.ToString()+ "     " + barcode);
+                for (int i = barcode.Length; i < 25; i++)
+                {
+                    Console.Write(" ");
+                }
+                Console.Write(dsr);
+                for (int j = dsr.Length; j < 52; j++)
+                {
+                    Console.Write(" ");
+                }
+                Console.Write(catalog + "\r\n");
             }
         }
 
@@ -971,7 +1201,7 @@ namespace DS2502Manager
         //               4) Send end signal of data bytes - character 'q'
         // Note: The signal characters and strings are unique, but arbitray choosen.
         //-----------------------------------------------------------------------------------------------------------
-        private void WriteDataToSerialPort(string[] DataBytes)
+        private void WriteDataToSerialPort(string[] DataBytes, string operation)
         {
             string[] ports = SerialPort.GetPortNames();
             if (!ports.Contains(PORT))
@@ -989,48 +1219,55 @@ namespace DS2502Manager
                     Thread.Sleep(1);
                     // Send write command to hardware
                     serialPort.Write("w");
-                    while (true)
+                    bool OperationContinue = true;
+                    while (OperationContinue)
                     {
                         string response = serialPort.ReadExisting();
                         if (response.Contains("ack"))
                         {
+                            if(operation == "write")
+                                Console.WriteLine("\r\nOK, sending data to hardware ............ ");
+                            else if(operation == "erase")
+                                Console.WriteLine("\r\nOK, sending commands to hardware ............ ");
                             // Console.WriteLine(response); // For debugging only
-                            int msg = 1;
                             foreach (string data in DataBytes)
                             {
-                                Thread.Sleep(1);
                                 if (data.Length > 3)
                                 {
-                                    Console.WriteLine("Tag " + msg.ToString() + ": " + data);
                                     foreach (char c in data)
+                                    {
                                         serialPort.Write(c.ToString());
+                                        Thread.Sleep(15);
+                                    }
                                 }
-                                msg++;
                             }
                             Thread.Sleep(1);
-                            // Send the end signal
+                            // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+                            // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+                            // This block can be used for debubugging
+                            // if hardware received correct data and commands
+                            string get = "";
+                            bool Reading = true;
+                            // Send the end signal - character q
                             serialPort.Write("q");
-                            Thread.Sleep(2);
-                            // Console.WriteLine(" debuging ");
-                            // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-                            // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-                            // For Debugging porpose only
-                            while (true)
+                            while (Reading)
                             {
-                                string get = serialPort.ReadExisting();
-                                if(get.Contains("Tag Number"))
-                                    Console.WriteLine("");
-                                Console.Write(get);
-                                //string str = DebugStr(get);
-                                //if (str.Length > 1)
-                                  //  Console.Write(str);
+                                get += serialPort.ReadExisting();
+                                // Console.WriteLine(get);
+                                // for debugging, assign -> get = serialPort.ReadExisting();
+                                // so existing data will not be added to the new received data
                                 if (get.Contains("ended"))
                                 {
-                                    Console.WriteLine("");
-                                    break;
+                                    if(operation == "write")
+                                        Console.WriteLine("\r\nData received by the hardware.");
+                                    else if(operation == "erase")
+                                        Console.WriteLine("\r\nCommands received by the hardware.");
+                                    serialPort.Close();
+                                    Reading = false;
                                 }
-                                Thread.Sleep(1);
                             }
+                            Console.WriteLine("Operation completed. \r\n");
+                            OperationContinue = false;
                             // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
                             // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
                             break;
@@ -1038,21 +1275,102 @@ namespace DS2502Manager
                         Thread.Sleep(1);
                     }
                     serialPort.Close();
+                    Console.WriteLine("Reloading data......... \r\n");
+                    Thread.Sleep(5);
+                    // Read back data from ID Chips and verify data
+                    Read(0, "all", "reload");
+                    VerifyWriting(operation);
                 }
             }
         }
 
-        private string DebugStr(string str)
+        //-----------------------------------------------------------------------------------------------------------
+        // Function name:  private void VerifyWriting()
+        // Description: Verify writing
+        //-----------------------------------------------------------------------------------------------------------
+        private void VerifyWriting(string operation)
         {
-            string output = "";
-            foreach (char c in str)
+            bool Verified = true, error;
+            string ErrorStr = "", strbuf;
+            string temp; // for debugging
+            if (operation == "write")
+                ErrorStr = "\r\nWriting Unsuccessful : \r\n";
+            else if (operation == "erase")
+                ErrorStr = "Erase failed: \r\n";
+            for (int m = 0; m < TagsDataBuffer.Length; m++)
             {
-                if (c != ' ')
+                if (TagsDataBuffer[m].Length > 1)
+                    ComputeDataFields(TagsDataBuffer[m], m);
+            }
+            for (int i = 0; i < TagsDataBuffer.Length; i++)
+            {
+                if (TagsDataBuffer[i].Length > 1)
                 {
-                    output += c;
+                    // Reload data in buffers
+                    error = false;
+                    strbuf = "";
+                    temp = " ID Tag : " + (i + 1).ToString();
+
+                    if (RecentBarcode[i] != BarcodeBuffer[i])
+                    {
+                        temp += "\r\nBarcode user changed : " + RecentBarcode[i] + "   Barcode  updated: " + BarcodeBuffer[i];
+                        strbuf += (" Barcode");
+                        Verified = false;
+                        error = true;
+                    }
+                    if (RecentDsr[i] != DsrBuffer[i])
+                    {
+                        temp += "\r\nDSR user changed: " + RecentDsr[i] + "   DSR updated: " + DsrBuffer[i];
+                        strbuf += (" Dsr");
+                        Verified = false;
+                        error = true;
+                    }
+                    if (RecentCatalog[i] != CatalogBuffer[i])
+                    {
+                        temp += "\r\nCatalog user changed: " + RecentCatalog[i] + "    Catalog updated: " + CatalogBuffer[i];
+                        strbuf += (" Catalog-number");
+                        Verified = false;
+                        error = true;
+                    }
+                    if (error)
+                    {
+                        ErrorStr += "ID Chip " + (i + 1).ToString() + " -> " + ReceiveDataFieldNames(strbuf);
+                        ErrorStr += "\r\n";
+                    }
+                    // Console.WriteLine(temp);
                 }
             }
-            return output;
+            if (Verified)
+            {
+                if(operation == "write")
+                    Console.WriteLine("Writing verified.");
+                else if(operation == "erase")
+                    Console.WriteLine("Erase verified.");
+            }
+            else
+            {
+                // Writing failed
+                Console.WriteLine(ErrorStr);
+            }
+        }
+
+        // Data fields name
+        private string ReceiveDataFieldNames(string data)
+        {
+            string[] arr = data.Split(' ');
+            if (arr.Length == 2)
+            {
+                return (arr[1]);
+            }
+            else if (arr.Length == 3)
+            {
+                return (arr[1] + " and " + arr[2]);
+            }
+            else if (arr.Length == 4)
+            {
+                return (arr[1] + ", " + arr[2] + ", and " + arr[3]);
+            }
+            return data;
         }
 
         //-----------------------------------------------------------------------------------------------------------
@@ -1061,15 +1379,15 @@ namespace DS2502Manager
         // Description: Determine and return data bytes to write into EPROM of an ID Tag
         //-----------------------------------------------------------------------------------------------------------
         private string dataToWrite(string barcode, string dsr, string catalog, string currentBarcode,
-                                  string currentDsr, string currentCatalog, string extraDsr)
+                                  string currentDsr, string currentCatalog, string multipleDsr)
         {
             int[] array = { 1, 2 }; // dummy initialization
             if (barcode.Length > 0)
             {
                 // Console.WriteLine("Extra DSR print debug : " + dsr);
-                if (extraDsr.Length >= 3)
+                if (multipleDsr.Length >= 3)
                 {
-                    barcode += extraDsr;
+                    barcode += multipleDsr;
                 }
                 if (currentDsr.Length > 0)
                     barcode += output.CharToHex(currentDsr, ref array) + _crc.crc8(array);
@@ -1116,13 +1434,9 @@ namespace DS2502Manager
             for (int i = 1; i <= IDTagData.Length; i++)
             {
                 if (IDTagData[i - 1].Length > 1)
-                {
                     TagsDataBuffer[i - 1] = input.SpaceDelimitor(input.RemoveExtraWords(IDTagData[i - 1]));
-                }
                 else
-                {
                     TagsDataBuffer[i - 1] = "";
-                }
             }
         }
 
@@ -1165,7 +1479,7 @@ namespace DS2502Manager
             input.GetRecordList(TagsDataBuffer[i - 1], ref DataRecord);
             PrintSerialChipNumber(TagsDataBuffer[i - 1]);
             // Print tecord Texts
-            PrintDataRecord(DataRecord);
+            PrintDataRecord(DataRecord, i);
             // Print data bytes
             PrintBytes(TagsDataBuffer[i - 1], i);
             Console.WriteLine("");
@@ -1199,13 +1513,9 @@ namespace DS2502Manager
                 {
                     SerialCount++;
                     if (SerialCount <= 16)
-                    {
                         SerialNumber += Data[i];
-                    }
                     else
-                    {
                         break;
-                    }
                 }
             }
             Console.WriteLine(" Chip Serial No.: " + SerialNumber);
@@ -1302,7 +1612,7 @@ namespace DS2502Manager
             //Console.WriteLine("  |        |           |                                     |");
         }
 
-        private void DataRecordText(string[] splitData, int j)
+        private void DataRecordText(string[] splitData, int j, int tag, string type = "barcode or dsr")
         {
             Console.Write("  | ");
             // Address
@@ -1315,7 +1625,7 @@ namespace DS2502Manager
             if (splitData[2].Contains("#"))
                 splitData[2] = splitData[2].Replace("#", " ");
             Console.Write(splitData[j + 2]);
-            for (int m = splitData[2].Length; m < 29; m++)
+            for (int m = splitData[j + 2].Length; m < 29; m++)
                 Console.Write(" ");
             // CRC
             Console.Write("| 0x" + splitData[j + 3]);
@@ -1327,7 +1637,7 @@ namespace DS2502Manager
         // Function name:  private void PrintDataRecord(string[] DataRecord)
         // Description: Print data record 
         //-----------------------------------------------------------------------------------------------------------
-        private void PrintDataRecord(string[] DataRecord)
+        private void PrintDataRecord(string[] DataRecord, int tag)
         {
             if(DataRecord.Length > 0)
                 PrintRecordTextBar(DataRecord);
@@ -1337,20 +1647,12 @@ namespace DS2502Manager
                 {
                     string[] splitData = DataRecord[i].Split(' ');
                     if (splitData.Length == 4)
-                    {
-                        DataRecordText(splitData, 0);
-                    }
-                    else if (splitData.Length == 8)
-                    {
+                        DataRecordText(splitData, 0, tag);
+                    else if (splitData.Length == 8) // Catalog number that has some chars replaced
                         for (int j = 0; j < 5; j = j + 4)
-                        {
-                            DataRecordText(splitData, j);
-                        }
-                    }
+                            DataRecordText(splitData, j, tag, "catalog");
                     else
-                    {
                         Console.WriteLine("Invalid data !");
-                    }
                 }
                 else
                 {
@@ -1359,6 +1661,7 @@ namespace DS2502Manager
             }
             Console.WriteLine("  |--------|-----------|------------------------------|------|");
             Console.WriteLine(" ");
+            // Console.Write(" Debug extra dsr: ");
         }
 
         //-----------------------------------------------------------------------------------------------------------
@@ -1443,7 +1746,7 @@ namespace DS2502Manager
 
                 if ((Convert.ToInt32(HexList[i], 16)) >= 10 && (Convert.ToInt32(HexList[i], 16)) <= 47 && i > crcPos)
                 {
-                    // MessageBox.Show(Convert.ToInt32(HexList[i], 16).ToString());
+                    // Console.WriteLine(Convert.ToInt32(HexList[i], 16).ToString());
                     if (Convert.ToInt32(HexList[i], 16) != crc && HexList[i] != " ")
                     {
                         BarcodeDsrEnded = true;
@@ -1475,15 +1778,11 @@ namespace DS2502Manager
             //Console.WriteLine(CatalogPos.ToString());
             string barcodeStr = "", DsrStr = "", CatalogStr = "";
             // int barcodeCounter = 0, DsrCounter = 0, CatalogCounter = 0;
-            for (int i = barcodePos; i < barcodePos + (barCodeLen - 2); i++)
-            {
-                barcodeStr += Convert.ToChar(Convert.ToInt32(HexList[i], 16)).ToString();
-            }
 
+            for (int i = barcodePos; i < barcodePos + (barCodeLen - 2); i++)
+                barcodeStr += Convert.ToChar(Convert.ToInt32(HexList[i], 16)).ToString();
             for (int j = DsrPos; j < DsrPos + (DsrLen - 2); j++)
-            {
                 DsrStr += Convert.ToChar(Convert.ToInt32(HexList[j], 16)).ToString();
-            }
 
             if (CatalogPos > 2)
             {
@@ -1513,7 +1812,6 @@ namespace DS2502Manager
             CatalogBuffer[tag] = input.GetCatalogNumber(CatalogStr, ref DataReplaced);
             UserChangedCatalog[tag] = CatalogBuffer[tag];
             ReplacedDataCountInCatalog(DataReplaced, tag + 1);
-            // Call function to fill the appropriate data fields
         }
 
         //-----------------------------------------------------------------------------------------------------------
@@ -1530,7 +1828,6 @@ namespace DS2502Manager
         //-----------------------------------------------------------------------------------------------------------
         private void ReplacedDataCountInCatalog(string str, int tag)
         {
-            DataReplacedCount = new int[6];
             switch (tag)
             {
                 case 1:
@@ -1576,7 +1873,7 @@ namespace DS2502Manager
                 while (true)
                 {
                     string response = serialPort.ReadExisting();
-                    // MessageBox.Show(response);
+                    // Console.WriteLine(response);
                     if (response.Length >= 3)
                     {
                         // This is the response sent by the hardware device
@@ -1645,17 +1942,6 @@ namespace DS2502Manager
             return;
         }
 
-        // Check if the input data contains lower case characters
-        private bool InputContainsLowerChar(string InputText)
-        {
-            for (int i = 0; i < InputText.Length; i++)
-            {
-                if (InputText[i] >= 'a' && InputText[i] <= 'z')
-                    return true;
-            }
-            return false;
-        }
-
         //----------------------------------------------------------------------------------
         // Function name: private static void PortAutoDetect(SerialPort serialPort)
         // Description: Detect the USB port that the Hardware device is connected to.
@@ -1685,9 +1971,7 @@ namespace DS2502Manager
                 Thread.Sleep(50);
             }
             if (ports.Contains(portName) == false)
-            {
                 portDetected = false;
-            }
         }
     }
 }

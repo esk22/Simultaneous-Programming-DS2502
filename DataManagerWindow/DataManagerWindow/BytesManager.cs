@@ -443,7 +443,7 @@ namespace DataManagerWindow
             
             else
             {
-                if (dataLen == 0 )
+                if (dataLen == 0 && len == 0 )
                 {
                     bool replaced = true;
                     string catalog = (CharToHex((ChangedCatalogNumber(previous, current, ref replaced, len)), ref array) + crc.crc8(array));
@@ -454,6 +454,8 @@ namespace DataManagerWindow
                 }
                 else
                 {
+                    // if len > 0 - length of the previously replaced data - , data replacement in the catalog number
+                    // has previously occured. Replacement can no longer be done.
                     return (CharToHex(current, ref array) + crc.crc8(array));       
                 }
             }
@@ -511,12 +513,32 @@ namespace DataManagerWindow
         {
             foreach (string element in DataToWrite)
             {
-                if (element.Length > 1)
+                if (element.Length > 2)
                 {
                     return true;
                 }
             }
             return false;
+        }
+
+        //-----------------------------------------------------------------------------------------------------------
+        // Function name: public bool VerifyUserInputDsr(string current, string previous, ref string dsr, int tag)
+        // Description: Check if the user input DSR value already exists, return true or false
+        //-----------------------------------------------------------------------------------------------------------
+        public bool VerifyUserInputDsr(string current, string previous)
+        {
+            if (previous.Length > 0 && current.Length > 0)
+            {
+                string[] prev_dsr = previous.Split(' ');
+                for (int i = 0; i < prev_dsr.Length - 1; i++ )
+                {
+                    if (current == prev_dsr[i])
+                    {
+                        return false;
+                    }
+                }
+            }
+            return true;
         }
 
         //------------------------------------------------------------------------------------------------------------
@@ -542,7 +564,7 @@ namespace DataManagerWindow
         //
         // Return data field names where the data are to be erased from
         //
-        public string EraseDataFields(string data)
+        public string DataFieldNames(string data)
         {
             string[] str = data.Split('0');
             if (str.Length == 1)

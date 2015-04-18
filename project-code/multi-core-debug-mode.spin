@@ -85,6 +85,7 @@ VAR
   long  DataTag4[128]
   long  DataTag5[128]
   long  DataTag6[128]
+  long  Buffer[750]
   ' Define flags
   long BytesRead[6]
   long BytesReady[6]
@@ -94,7 +95,7 @@ VAR
   byte TagNumber
   byte dataStart[6]
   
-PUB go | a
+PUB go | a, data_count
     SetPGMLineHigh
     system.Clock(80_000_000)
     TagsInit
@@ -121,7 +122,8 @@ PUB go | a
             BytesCount4 := 0
             BytesCount5 := 0
             BytesCount6 := 0
-            repeat until c == "q"
+            data_count := 0     
+            repeat 'until c == "q"
                 c := tag1.ReceiveChar
                 if (c == "q")
                     quit
@@ -175,7 +177,7 @@ PUB go | a
                         DataTag6[BytesCount6]  := c
                         BytesCount6++
                         
-            waitcnt(constant(tag1#USEC_TICKS * 5000) + cnt)
+            waitcnt(constant(tag1#USEC_TICKS * 10000) + cnt)
             CogOperation("W")
            
 PRI CogOperation(op)
@@ -358,16 +360,18 @@ PRI SendBytes(bytes) | x
               
             if BytesReady[0] == 1 AND BytesReady[1] == 1 AND BytesReady[2] == 1 
                 if BytesReady[3] == 1 AND BytesReady[4] == 1 AND BytesReady[5] == 1
+
                     tag1.SendStr(string("finished"))
                     return
-
+                    
 '' Write data bytes - ID Chip 1
 PRI WriteBytesToMemory1(PGM) : i
     tag1.DataStartPos(dataStart[0])
     tag1.RecordCounter(BytesCount1)
     repeat i from 0 to (BytesCount1 - 1)
         tag1.DataRecord(i, DataTag1[i])
-    tag1.WriteBytesToMemory(PGM, 1) 
+    if(BytesCount1 > 3)
+        tag1.WriteBytesToMemory(PGM, 1) 
     return
  
 '' Write data bytes - ID Chip 2                         
@@ -378,7 +382,8 @@ PRI WriteBytesToMemory2(PGM) : i
     repeat i from 0 to (BytesCount2 - 1)
         tag1.DataRecord(i, DataTag2[i])
     waitcnt(constant(tag1#USEC_TICKS * 5000) + cnt)
-    tag1.WriteBytesToMemory(PGM, 2) 
+    if(BytesCount2 > 3)
+        tag1.WriteBytesToMemory(PGM, 2) 
     return
  
 '' Write data bytes - ID Chip 3   
@@ -389,7 +394,8 @@ PRI WriteBytesToMemory3(PGM) | i
     repeat i from 0 to (BytesCount3 - 1)
         tag1.DataRecord(i, DataTag3[i])
     waitcnt(constant(tag1#USEC_TICKS * 5000) + cnt)
-    tag1.WriteBytesToMemory(PGM, 3) 
+    if(BytesCount3 > 3)
+        tag1.WriteBytesToMemory(PGM, 3) 
     return
 
 '' Write data bytes - ID Chip 4    
@@ -400,7 +406,8 @@ PRI WriteBytesToMemory4(PGM) | i
     repeat i from 0 to (BytesCount4 - 1)
         tag1.DataRecord(i, DataTag4[i])
     waitcnt(constant(tag1#USEC_TICKS * 5000) + cnt)
-    tag1.WriteBytesToMemory(PGM, 4) 
+    if(BytesCount4 > 3)
+        tag1.WriteBytesToMemory(PGM, 4) 
     return
 
 '' Write data bytes - ID Chip 5    
@@ -411,7 +418,8 @@ PRI WriteBytesToMemory5(PGM) | i
     repeat i from 0 to (BytesCount5 - 1)
         tag1.DataRecord(i, DataTag5[i])
     waitcnt(constant(tag1#USEC_TICKS * 5000) + cnt)
-    tag1.WriteBytesToMemory(PGM, 5) 
+    if(BytesCount5 > 3)
+        tag1.WriteBytesToMemory(PGM, 5) 
     return
 
 '' Write data bytes - ID Chip 6
@@ -422,7 +430,8 @@ PRI WriteBytesToMemory6(PGM) | i
     repeat i from 0 to (BytesCount6 - 1)
         tag1.DataRecord(i, DataTag6[i])
     waitcnt(constant(tag1#USEC_TICKS * 5000) + cnt)
-    tag1.WriteBytesToMemory(PGM, 6) 
+    if(BytesCount6 > 3)
+        tag1.WriteBytesToMemory(PGM, 6) 
     return
 
 '' Turn on LEDs P16 when data/command

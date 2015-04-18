@@ -27,7 +27,12 @@ namespace DataManagerWindow
         private static string[] BarcodeBuffer;
         private static string[] DsrBuffer;
         private static string[] CatalogBuffer;
+        private static string[] ExistingDsrs;
         // Other arrays
+        private static string[] RecentBarcode;
+        private static string[] RecentDsr;
+        private static string[] RecentCatalog;
+
         private static bool[] CheckBoxBuffer;
         private static string[] HexList;
         private static string[] TagsDataBuffer;
@@ -138,11 +143,16 @@ namespace DataManagerWindow
             UserChangedBarcode = new string[6];
             UserChangedDSR = new string[6];
             UserChangedCatalog = new string[6];
+            ExistingDsrs = new string[6];
             HexList = new string[128];
             BarcodeBuffer = new string[6];
             DsrBuffer = new string[6];
             CatalogBuffer = new string[6];
+            RecentBarcode = new string[6];
+            RecentDsr = new string[6];
+            RecentCatalog = new string[6];
             CheckBoxBuffer = new bool[6];
+            DataReplacedCount = new int[6];
             // Define the size of the array that copies and holds
             // the ID Tag data
             TagsDataBuffer = new string[6];
@@ -150,9 +160,11 @@ namespace DataManagerWindow
             DataRecord = new string[3];
             BytesRemained = new int[6];
             for (int i = 0; i < 3; i++)
+            {
                 DataRecord[i] = "a";
-            for (int j = 0; j < 6; j++)
-                BytesRemained[0] = 127;
+                BytesRemained[i] = 128;
+                ExistingDsrs[i] = "";
+            }
             // Progressbar maximum
             ProgressMax = 1900;
             this.progressBar1.Visible = false;
@@ -165,6 +177,8 @@ namespace DataManagerWindow
         //-----------------------------------------------------------------------------------------------------------
         private void InitDataBuffer(string[] StrDataBytes)
         {
+            for (int m = 0; m < ExistingDsrs.Length; m++)
+                ExistingDsrs[m] = "";
             DataFiledsEnable();
             bool DefaultText = false;
             // Fill data contents in the appropriate
@@ -174,11 +188,13 @@ namespace DataManagerWindow
                 if (StrDataBytes[i - 1].Length > 1)
                 {
                     TagsDataBuffer[i - 1] = compute.SpaceDelimitor(compute.RemoveExtraWords(StrDataBytes[i - 1]));
+                    compute.GetRecordList(TagsDataBuffer[i - 1], ref DataRecord);
+                    BufferExistingDsr(DataRecord, i - 1);
                     if (!DefaultText)
                     {
                         // MessageBox.Show(StrDataBytes[i - 1]);
                         DisplayHexDataTextBox(TagsDataBuffer[i - 1]);
-                        compute.GetRecordList(TagsDataBuffer[i - 1], ref DataRecord);
+                        // compute.GetRecordList(TagsDataBuffer[i - 1], ref DataRecord);
                         DisplayDataRecord(DataRecord);
                         AutoChckRecordListTag(i);
                         AutoCheckHexListTag(i);
@@ -186,6 +202,7 @@ namespace DataManagerWindow
                         this.SerialNoLabel.Visible = true;
                     }
                     ComputeDataFields(TagsDataBuffer[i - 1], i);
+                    // MessageBox.Show(i.ToString() + "  " + ExistingDsrs[i - 1]);
                 }
                 else
                 {
@@ -412,6 +429,24 @@ namespace DataManagerWindow
         }
 
         //-----------------------------------------------------------------------------------------------------------
+        // Function name: private void BufferExistingDsr(string dsr, int tag)
+        // Description: Record existing DSR values in a buffer
+        //-----------------------------------------------------------------------------------------------------------
+        private void BufferExistingDsr(string[] DataRecord, int tag)
+        {
+            for (int i = 0; i < DataRecord.Length; i++)
+            {
+                string[] splitData = DataRecord[i].Split(' ');
+                if (splitData.Length == 4)
+                {
+                    int len = Convert.ToInt32(splitData[1], 16);
+                    if (len <= 6)
+                        ExistingDsrs[tag] += " " + splitData[2];
+                }
+            }
+        }
+
+        //-----------------------------------------------------------------------------------------------------------
         // Function name: private void DisplayHexDataTextBox(string Data)
         // Description: Display the ID Tag EPROM contents as hex values in the text box
         //              Each data byte contains two hex values, and each data byte is
@@ -599,7 +634,7 @@ namespace DataManagerWindow
             ComputeDatalenPos(ref barcodePos, ref DsrPos, ref CatalogPos, ref barCodeLen, ref DsrLen, ref CatalogLen, ref crc);
             //MessageBox.Show(CatalogPos.ToString());
             string barcodeStr = "", DsrStr = "", CatalogStr = "";
-            int barcodeCounter = 0, DsrCounter = 0, CatalogCounter = 0;
+            // int barcodeCounter = 0, DsrCounter = 0, CatalogCounter = 0;
             for (int i = barcodePos; i < barcodePos + (barCodeLen - 2); i++)
             {
                 barcodeStr += Convert.ToChar(Convert.ToInt32(HexList[i], 16)).ToString();
@@ -629,15 +664,17 @@ namespace DataManagerWindow
                 }
             }
                 
-            UserChangedBarcode[barcodeCounter] = barcodeStr;
-            UserChangedDSR[DsrCounter] = DsrStr;
+            //UserChangedBarcode[barcodeCounter] = barcodeStr;
+            // UserChangedDSR[DsrCounter] = DsrStr;
             // MessageBox.Show(DsrStr);
             string DataReplaced = "";
             // MessageBox.Show(CatalogStr);
-            UserChangedCatalog[CatalogCounter] = compute.GetCatalogNumber(CatalogStr, ref DataReplaced);
+            //UserChangedCatalog[CatalogCounter]
+            string catalog = compute.GetCatalogNumber(CatalogStr, ref DataReplaced);
+            // MessageBox.Show(DataReplaced);
             ReplacedDataCountInCatalog(DataReplaced, tag);
             // Display data in the Edit Data text boxes
-            DisplayEditDataTextBox(barcodeStr, DsrStr, UserChangedCatalog[CatalogCounter], tag);
+            DisplayEditDataTextBox(barcodeStr, DsrStr, catalog, tag);
         }
 
         //-----------------------------------------------------------------------------------------------------------
@@ -654,7 +691,6 @@ namespace DataManagerWindow
         //-----------------------------------------------------------------------------------------------------------
         private void ReplacedDataCountInCatalog(string str, int tag)
         {
-            DataReplacedCount = new int[6];
             switch (tag)
             {
                 case 1:
@@ -984,6 +1020,14 @@ namespace DataManagerWindow
                 MessageBox.Show(ErrString + "\nDSR value must contain upper case letters and digits only.");
                 return false;
             }
+            else
+            {
+                if (!compute.VerifyUserInputDsr(UserChangedDSR[i], ExistingDsrs[i]))
+                {
+                    MessageBox.Show("The DSR value " + UserChangedDSR[i] + " already exists in ID Tag " + (i + 1).ToString());
+                    return false;
+                }
+            }
             
             if ((UserChangedCatalog[i].Length > 0) && (CatalogBuffer[i] != UserChangedCatalog[i]) && 
                 (UserChangedCatalog[i].Length < 8))
@@ -1114,7 +1158,7 @@ namespace DataManagerWindow
                     {
                         AppendDataOnRecordText(0, splitData);
                     }
-                    else if (splitData.Length == 8)
+                    else if (splitData.Length == 8) // Catalog number that has some chars replaced
                     {
                         for (int j = 0; j < 5; j = j + 4)
                             AppendDataOnRecordText(j, splitData);
@@ -1141,6 +1185,13 @@ namespace DataManagerWindow
         private void OkBotton_Click(object sender, EventArgs e)
         {
             ReadDataFieldsToValidate();
+            InitCurrentbuffer();
+            for (int i = 0; i < TagsDataBuffer.Length; i++)
+            {
+                RecentBarcode[i] = UserChangedBarcode[i];
+                RecentDsr[i] = UserChangedDSR[i];
+                RecentCatalog[i] = UserChangedCatalog[i];
+            }
             DataToWrite = new string[6];
             for (int i = 0; i < 6; i++)
             {
@@ -1183,14 +1234,15 @@ namespace DataManagerWindow
                     bool EraseCatalog = compute.EraseData(CatalogBuffer[i], UserChangedCatalog[i], "Catalog-number", ref eraseFlag);
                     if (EraseBarcode || EraseDsr || EraseCatalog)
                     {
-                        string warning = "Do you want to erase " + compute.EraseDataFields(eraseFlag) + " \r\n";
+                        string warning = "Do you want to erase " + compute.DataFieldNames(eraseFlag) + " \r\n";
                         warning += " from ID Tag " + (i + 1).ToString() + " ?";
                         DialogResult dialogue = MessageBox.Show(warning, "Erase data !", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
                         if (dialogue == DialogResult.Yes)
                         {
                             string barcode = (EraseBarcode == true) ? "x" : compute.GetDataToWrite(BarcodeBuffer[i], UserChangedBarcode[i]);
                             string dsr = (EraseDsr == true) ? "y" : compute.GetDataToWrite(DsrBuffer[i], UserChangedDSR[i]);
-                            string catalog; 
+                            string catalog;
+                            
                             if (barcode.Length / 2 >= 7)
                                 catalog = compute.GetDataToWrite(CatalogBuffer[i], UserChangedCatalog[i], 1, DataReplacedCount[i]);
                             else if (dsr.Length / 2 >= 3 && dsr.Length / 2 <= 7)
@@ -1211,6 +1263,7 @@ namespace DataManagerWindow
                     {
                         string barcode = compute.GetDataToWrite(BarcodeBuffer[i], UserChangedBarcode[i]);
                         string dsr = compute.GetDataToWrite(DsrBuffer[i], UserChangedDSR[i]);
+                        // MessageBox.Show(DataReplacedCount[i].ToString() + " tag " + (i+1).ToString());
                         string catalog = compute.GetDataToWrite(CatalogBuffer[i], UserChangedCatalog[i], (barcode + dsr).Length, DataReplacedCount[i]);
                         DataToWrite[i] = tag + dataToWrite(barcode, dsr, catalog, UserChangedBarcode[i], UserChangedDSR[i], UserChangedCatalog[i]);
                         if ((DataToWrite[i].Length  - 1)/2 > BytesRemained[i])
@@ -1230,6 +1283,17 @@ namespace DataManagerWindow
                 {
                     WriteDataToSerialPort(DataToWrite);
                 }
+            }
+        }
+
+        // Init current buffer
+        private void InitCurrentbuffer()
+        {
+            for (int i = 0; i < TagsDataBuffer.Length; i++)
+            {
+                RecentBarcode[i] = "";
+                RecentDsr[i] = "";
+                RecentCatalog[i] = "";
             }
         }
 
@@ -1346,18 +1410,22 @@ namespace DataManagerWindow
                                 MessageBox.Show(get);
                                 if (get.Contains("ended"))
                                 {
-                                    MessageBox.Show("ended");
+                                    // MessageBox.Show("ended");
                                     break;
                                 }       
                             }
                             // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
                             // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+                           
                             break;
                         }
                         Thread.Sleep(1);
                     }
                     serialPort1.Close();
-                    // ReloadData();
+                    // Load data from ID Chips
+                    ReloadData();
+                    // Verify writing -> any changes in the data fields
+                    VerifyWriting();
                 }
             }
         }
@@ -1497,6 +1565,79 @@ namespace DataManagerWindow
             {
                 ReloadData();
             }
+        }
+
+        //-----------------------------------------------------------------------------------------------------------
+        // Function name:  private void VerifyWriting()
+        // Description: Verify writing
+        //-----------------------------------------------------------------------------------------------------------
+        private void VerifyWriting()
+        {
+            bool Verified = true , error;
+            string ErrorStr = "Writing Unsuccessful : \r\n", strbuf, temp;
+            for (int i = 0; i < TagsDataBuffer.Length; i++)
+            {
+                if (TagsDataBuffer[i].Length > 1)
+                {
+                    error = false;
+                    strbuf = ""; temp = "";
+                    temp += "Barcode : " + RecentBarcode[i] + "Barcode : " + BarcodeBuffer[i];
+                    temp += "\r\nDSR : " + RecentDsr[i] + " DSR : " + DsrBuffer[i];
+                    temp += "\r\nCatalog: " + RecentCatalog[i] + " Catalog: " + CatalogBuffer[i];
+                    // MessageBox.Show(temp);
+                    if (RecentBarcode[i] != BarcodeBuffer[i])
+                    {
+                        strbuf += (" Barcode");
+                        Verified = false;
+                        error = true;
+                    }
+                    if (RecentDsr[i] != DsrBuffer[i])
+                    {
+                        strbuf += (" Dsr");
+                        Verified = false;
+                        error = true;
+                    }
+                    if (RecentCatalog[i] != CatalogBuffer[i])
+                    {
+                        strbuf += (" Catalog-number");
+                        Verified = false;
+                        error = true;
+                    }
+                    if (error)
+                    {
+                        ErrorStr += "ID Tag " + (i + 1).ToString() + " -> " + GetDataFieldNames(strbuf);
+                        ErrorStr += "\r\n";
+                    }
+                }
+            }
+            if (Verified)
+            {
+                MessageBox.Show("Writing verified.");
+            }
+            else
+            {
+                // Writing failed
+                MessageBox.Show(ErrorStr);
+            }
+        }
+
+        // Data fields name
+        private string GetDataFieldNames(string data)
+        {
+            string[] arr = data.Split(' ');
+            if (arr.Length == 2)
+            {
+                return (arr[1]);
+            }
+            else if (arr.Length == 3)
+            {
+                return (arr[1] + " and " + arr[2]);
+            }
+            else if (arr.Length == 4)
+            {
+                return (arr[1] + ", " + arr[2] + ", and " + arr[3]);
+            }
+            return data;
         }
 
         //-----------------------------------------------------------------------------------------------------------

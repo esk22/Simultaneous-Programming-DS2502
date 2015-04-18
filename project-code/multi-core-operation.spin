@@ -362,13 +362,15 @@ PRI SendBytes(bytes) | x
                     return
 
 
+                    
 '' Write data bytes - ID Chip 1
 PRI WriteBytesToMemory1(PGM) : i
     tag1.DataStartPos(dataStart[0])
     tag1.RecordCounter(BytesCount1)
     repeat i from 0 to (BytesCount1 - 1)
         tag1.DataRecord(i, DataTag1[i])
-    tag1.WriteBytesToMemory(PGM, 1) 
+    if(BytesCount1 > 3)
+        tag1.WriteBytesToMemory(PGM, 1) 
     return
  
 '' Write data bytes - ID Chip 2                         
@@ -379,7 +381,8 @@ PRI WriteBytesToMemory2(PGM) : i
     repeat i from 0 to (BytesCount2 - 1)
         tag1.DataRecord(i, DataTag2[i])
     waitcnt(constant(tag1#USEC_TICKS * 5000) + cnt)
-    tag1.WriteBytesToMemory(PGM, 2) 
+    if(BytesCount2 > 3)
+        tag1.WriteBytesToMemory(PGM, 2) 
     return
  
 '' Write data bytes - ID Chip 3   
@@ -390,7 +393,8 @@ PRI WriteBytesToMemory3(PGM) | i
     repeat i from 0 to (BytesCount3 - 1)
         tag1.DataRecord(i, DataTag3[i])
     waitcnt(constant(tag1#USEC_TICKS * 5000) + cnt)
-    tag1.WriteBytesToMemory(PGM, 3) 
+    if(BytesCount3 > 3)
+        tag1.WriteBytesToMemory(PGM, 3) 
     return
 
 '' Write data bytes - ID Chip 4    
@@ -401,7 +405,8 @@ PRI WriteBytesToMemory4(PGM) | i
     repeat i from 0 to (BytesCount4 - 1)
         tag1.DataRecord(i, DataTag4[i])
     waitcnt(constant(tag1#USEC_TICKS * 5000) + cnt)
-    tag1.WriteBytesToMemory(PGM, 4) 
+    if(BytesCount4 > 3)
+        tag1.WriteBytesToMemory(PGM, 4) 
     return
 
 '' Write data bytes - ID Chip 5    
@@ -412,9 +417,22 @@ PRI WriteBytesToMemory5(PGM) | i
     repeat i from 0 to (BytesCount5 - 1)
         tag1.DataRecord(i, DataTag5[i])
     waitcnt(constant(tag1#USEC_TICKS * 5000) + cnt)
-    tag1.WriteBytesToMemory(PGM, 5) 
+    if(BytesCount5 > 3)
+        tag1.WriteBytesToMemory(PGM, 5) 
     return
 
+'' Write data bytes - ID Chip 6
+PRI WriteBytesToMemory6(PGM) | i
+    tag1.start(PIN15)
+    tag1.DataStartPos(dataStart[5])
+    tag1.RecordCounter(BytesCount6)
+    repeat i from 0 to (BytesCount6 - 1)
+        tag1.DataRecord(i, DataTag6[i])
+    waitcnt(constant(tag1#USEC_TICKS * 5000) + cnt)
+    if(BytesCount6 > 3)
+        tag1.WriteBytesToMemory(PGM, 6) 
+    return
+    
 '' Turn on LEDs P16 when data/command
 '' is received through the Serial Port  
 '' The Pin can be changed based on the design.   
