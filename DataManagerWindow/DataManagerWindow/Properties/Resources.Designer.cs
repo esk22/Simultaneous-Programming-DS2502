@@ -63,59 +63,29 @@ namespace DataManagerWindow.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
+        internal static System.Drawing.Bitmap Icon_one_wire {
+            get {
+                object obj = ResourceManager.GetObject("Icon-one-wire", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap Icon_one_wire1 {
+            get {
+                object obj = ResourceManager.GetObject("Icon-one-wire1", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
         internal static System.Drawing.Bitmap Icone_one_wire {
             get {
                 object obj = ResourceManager.GetObject("Icone-one-wire", resourceCulture);
-                return ((System.Drawing.Bitmap)(obj));
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized resource of type System.Drawing.Bitmap.
-        /// </summary>
-        internal static System.Drawing.Bitmap Icone_one_wire1 {
-            get {
-                object obj = ResourceManager.GetObject("Icone-one-wire1", resourceCulture);
-                return ((System.Drawing.Bitmap)(obj));
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized resource of type System.Drawing.Bitmap.
-        /// </summary>
-        internal static System.Drawing.Bitmap Icone_one_wire2 {
-            get {
-                object obj = ResourceManager.GetObject("Icone-one-wire2", resourceCulture);
-                return ((System.Drawing.Bitmap)(obj));
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized resource of type System.Drawing.Bitmap.
-        /// </summary>
-        internal static System.Drawing.Bitmap Icone_one_wire3 {
-            get {
-                object obj = ResourceManager.GetObject("Icone-one-wire3", resourceCulture);
-                return ((System.Drawing.Bitmap)(obj));
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized resource of type System.Drawing.Bitmap.
-        /// </summary>
-        internal static System.Drawing.Bitmap Icone_one_wire4 {
-            get {
-                object obj = ResourceManager.GetObject("Icone-one-wire4", resourceCulture);
-                return ((System.Drawing.Bitmap)(obj));
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized resource of type System.Drawing.Bitmap.
-        /// </summary>
-        internal static System.Drawing.Bitmap Icone_one_wire5 {
-            get {
-                object obj = ResourceManager.GetObject("Icone-one-wire5", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }

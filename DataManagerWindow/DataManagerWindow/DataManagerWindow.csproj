@@ -50,11 +50,12 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="crc.cs" />
-    <Compile Include="DataManager.cs">
+    <Compile Include="DataOutManager.cs" />
+    <Compile Include="DataViewWindow.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="DataManager.Designer.cs">
-      <DependentUpon>DataManager.cs</DependentUpon>
+    <Compile Include="DataViewWindow.Designer.cs">
+      <DependentUpon>DataViewWindow.cs</DependentUpon>
     </Compile>
     <Compile Include="HelpWindow.cs">
       <SubType>Form</SubType>
@@ -68,11 +69,11 @@
     <Compile Include="MainWindow.Designer.cs">
       <DependentUpon>MainWindow.cs</DependentUpon>
     </Compile>
-    <Compile Include="BytesManager.cs" />
+    <Compile Include="DataInManager.cs" />
     <Compile Include="OneWire.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <EmbeddedResource Include="DataManager.resx">
-      <DependentUpon>DataManager.cs</DependentUpon>
+    <EmbeddedResource Include="DataViewWindow.resx">
+      <DependentUpon>DataViewWindow.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="HelpWindow.resx">
       <DependentUpon>HelpWindow.cs</DependentUpon>
@@ -102,16 +103,9 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="icon.ico" />
-    <None Include="Resources\Icone-one-wire8.png" />
-    <None Include="Resources\Icone-one-wire7.png" />
-    <None Include="Resources\Icone-one-wire6.png" />
-    <None Include="Resources\Icone-one-wire5.png" />
-    <None Include="Resources\Icone-one-wire4.png" />
-    <None Include="Resources\Icone-one-wire3.png" />
-    <None Include="Resources\Icone-one-wire2.png" />
-    <None Include="Resources\Icone-one-wire1.png" />
+    <None Include="Resources\Icon-one-wire1.png" />
+    <None Include="Resources\Icon-one-wire.png" />
     <None Include="Resources\Icone-one-wire.png" />
-    <None Include="Resources\IButton.PNG" />
   </ItemGroup>
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

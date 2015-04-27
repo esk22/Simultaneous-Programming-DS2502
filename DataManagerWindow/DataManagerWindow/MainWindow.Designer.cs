@@ -43,8 +43,8 @@ namespace DataManagerWindow
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.Label OS_Compatability;
         private System.Windows.Forms.Label OneWireDevice;
-        private System.Windows.Forms.PictureBox pictureBox1;
         private System.Windows.Forms.Timer timer1;
+        private System.Windows.Forms.PictureBox pictureBox1;
     }
 }
 

@@ -8,7 +8,7 @@ using System.Text;
 
 namespace DataManagerWindow
 {
-    class ComputeCRC8
+    class CRC
     {
         // This table comes from Dallas sample code. It is freely usable.
         // Copyright (C) 2000 Dallas Semiconductor Corporation
@@ -29,17 +29,17 @@ namespace DataManagerWindow
             87,  9,235,181, 54,104,138,212,149,203, 41,119,244,170, 72, 22,
             233,183, 85, 11,136,214, 52,106, 43,117,151,201, 74, 20,246,168,
             116, 42,200,150, 21, 75,169,247,182,232, 10, 84,215,137,107, 53};
-        private static int CRC;
+        private static int crc;
 
         public string crc8(int[] Address)
         {
-            CRC = 0;
+            crc = 0;
             for (int i = 0; i < Address.Length; i++)
             {
-                CRC = CrcLookUpTable[CRC ^ Address[i]];
+                crc = CrcLookUpTable[crc ^ Address[i]];
             }
             // Return CRC as a hex value
-            return CRC.ToString("X2");
+            return crc.ToString("X2");
         }
 
         // Computing CRC without lookup table

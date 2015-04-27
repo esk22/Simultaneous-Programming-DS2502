@@ -16,5 +16,5 @@ C:\Users\Arun\Desktop\MainGUI\DataManagerWindow\DataManagerWindow\obj\x86\Debug\
 C:\Users\Arun\Desktop\MainGUI\DataManagerWindow\DataManagerWindow\obj\x86\Debug\DataManagerWindow.csproj.GenerateResource.Cache
 C:\Users\Arun\Desktop\MainGUI\DataManagerWindow\DataManagerWindow\obj\x86\Debug\DataManagerWindow.exe
 C:\Users\Arun\Desktop\MainGUI\DataManagerWindow\DataManagerWindow\obj\x86\Debug\DataManagerWindow.pdb
-C:\Users\Arun\Desktop\MainGUI\DataManagerWindow\DataManagerWindow\obj\x86\Debug\DataManagerWindow.DataManager.resources
 C:\Users\Arun\Desktop\MainGUI\DataManagerWindow\DataManagerWindow\obj\x86\Debug\DataManagerWindow.MainWindow.resources
+C:\Users\Arun\Desktop\MainGUI\DataManagerWindow\DataManagerWindow\obj\x86\Debug\DataManagerWindow.DataViewWindow.resources

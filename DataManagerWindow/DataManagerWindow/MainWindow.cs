@@ -1,4 +1,5 @@
-﻿//***********************************************************************************************************||
+﻿
+//***********************************************************************************************************||
 //-----------------------------------------------------------------------------------------------------------||
 // Project name            : Senior Capstone Design
 // Project term            : Fall 2014 - Spring 2015
@@ -12,7 +13,6 @@
 // Members                 : Arun Rai, Danny Mota, Mohammad Islam, and Xin Gan
 // Author                  : Arun Rai
 // Date                    : 02/20/2015
-// Reviewed by             : 
 // Description: This software allows a user to read and program multiple DS2502 (aka ID Tags), upto 6 devices, 
 //              through a Graphical User Interface (GUI).
 // Filename - MainWindow.cs
@@ -37,12 +37,12 @@ namespace DataManagerWindow
     public partial class MainWindow : Form
     {
         private static bool PortDetected;
-        private static bool OpenDataManager;
+        private static bool OpenDataView; // DataViewWindow
         private static bool PortOpen;
         private static string PortName;
-        private static string[] DataBuffer;
+        private static string[] HexDataStr;
         private static int ProgressMax;
-        BytesManager compute;
+        DataInManager BytesIn;
 
         public MainWindow()
         {
@@ -84,8 +84,8 @@ namespace DataManagerWindow
             this.serialPort1 = new System.IO.Ports.SerialPort(this.components);
             this.progressBar1 = new System.Windows.Forms.ProgressBar();
             this.Progress = new System.Windows.Forms.Label();
-            this.pictureBox1 = new System.Windows.Forms.PictureBox();
             this.timer1 = new System.Windows.Forms.Timer(this.components);
+            this.pictureBox1 = new System.Windows.Forms.PictureBox();
             this.Port_Selection.SuspendLayout();
             this.Driver_Info.SuspendLayout();
             this.Adapter_Type.SuspendLayout();
@@ -242,7 +242,7 @@ namespace DataManagerWindow
             this.UserInstructionText.Name = "UserInstructionText";
             this.UserInstructionText.Size = new System.Drawing.Size(143, 96);
             this.UserInstructionText.TabIndex = 5;
-            this.UserInstructionText.Text = "Select the appropriate \r\nport number. When\r\n finished click \'OK\'. OR\r\nSelect Auto" +
+            this.UserInstructionText.Text = "Select the appropriate \r\nport number from the port list. \r\nWhen finished click \'OK\'. OR\r\nSelect Auto" +
     "-Detect \r\nbelow.\r\n\r\n";
             this.UserInstructionText.Click += new System.EventHandler(this.label12_Click);
             // 
@@ -319,20 +319,20 @@ namespace DataManagerWindow
             this.Progress.TabIndex = 10;
             this.Progress.Visible = false;
             // 
-            // pictureBox1
-            // 
-            this.pictureBox1.Image = global::DataManagerWindow.Properties.Resources.Icone_one_wire5;
-            this.pictureBox1.Location = new System.Drawing.Point(15, 13);
-            this.pictureBox1.Name = "pictureBox1";
-            this.pictureBox1.Size = new System.Drawing.Size(171, 247);
-            this.pictureBox1.TabIndex = 11;
-            this.pictureBox1.TabStop = false;
-            // 
             // timer1
             // 
             this.timer1.Tick += new System.EventHandler(this.timer1_Tick);
             // 
-            // MainForm
+            // pictureBox1
+            // 
+            this.pictureBox1.Image = global::DataManagerWindow.Properties.Resources.Icon_one_wire1;
+            this.pictureBox1.Location = new System.Drawing.Point(6, 8);
+            this.pictureBox1.Name = "pictureBox1";
+            this.pictureBox1.Size = new System.Drawing.Size(207, 249);
+            this.pictureBox1.TabIndex = 11;
+            this.pictureBox1.TabStop = false;
+            // 
+            // MainWindow
             // 
             this.ClientSize = new System.Drawing.Size(562, 432);
             this.Controls.Add(this.pictureBox1);
@@ -345,7 +345,7 @@ namespace DataManagerWindow
             this.Controls.Add(this.OK_botton);
             this.Controls.Add(this.Driver_Info);
             this.Controls.Add(this.Port_Selection);
-            this.Name = "MainForm";
+            this.Name = "MainWindow";
             this.Load += new System.EventHandler(this.MainForm_Load);
             this.Port_Selection.ResumeLayout(false);
             this.Port_Selection.PerformLayout();
@@ -366,12 +366,12 @@ namespace DataManagerWindow
         private void InitOtherComponents()
         {
             PortDetected = false;
-            OpenDataManager = false;
+            OpenDataView = false;
             PortOpen = false;
             ProgressMax = 1900;
             PortName = "PORT";
-            compute = new BytesManager();
-            DataBuffer = new string[6];
+            BytesIn = new DataInManager();
+            HexDataStr = new string[6];
             this.FormBorderStyle = FormBorderStyle.FixedSingle;
             this.MaximizeBox = false;
             this.MinimizeBox = false;
@@ -409,11 +409,6 @@ namespace DataManagerWindow
             {
                 PortSelectionList.Text = "  ";
                 PortDetected = false;
-            }
-            else
-            {
-                //InitDataBuffer();
-                // OpenDataManagerWindow(PortName);
             }
         }
 
@@ -462,7 +457,7 @@ namespace DataManagerWindow
                 MessageBox.Show(message, caption, MessageBoxButtons.OK, MessageBoxIcon.None);
                 // intialize the flag to true to allow the user to
                 // navigate to next page -----
-                OpenDataManager = true;
+                OpenDataView = true;
                 PortOpen = true;
                 // Display the port number
                 PortSelectionList.Text = PortName;
@@ -483,7 +478,7 @@ namespace DataManagerWindow
         {
             if (PortDetected)
             {
-                OpenDataManager = true;
+                OpenDataView = true;
                 PortOpen = true;
                 // Display the port number
                 PortSelectionList.Text = PortName;
@@ -594,7 +589,7 @@ namespace DataManagerWindow
                         if (response.Contains("finished"))
                         {
                             // SerialStrToBytes(data);
-                            compute.SerialStrToBytes(data, ref DataBuffer);
+                            BytesIn.ParseSerialString(data, ref HexDataStr);
                             // MessageBox.Show(data);
                             serialPort1.Close();
                             break;
@@ -607,10 +602,10 @@ namespace DataManagerWindow
         }
 
         // Initialize data buffer
-        private void InitDataBuffer()
+        private void InitHexDataStr()
         {
             for (int i = 0; i < 6; i++)
-                DataBuffer[i] = "";
+                HexDataStr[i] = "";
         }
 
         //----------------------------------------------------------------------------------
@@ -624,7 +619,7 @@ namespace DataManagerWindow
             // InitPortSelectionList();
             if (ports.Length > 0)
             {
-                InitDataBuffer();
+                InitHexDataStr(); // (The function is just above this function)
                 string selected = this.PortSelectionList.GetItemText(this.PortSelectionList.SelectedItem);
                 if (selected != PortName) PortAutoDetect(serialPort1);
                 //MessageBox.Show(selected);
@@ -640,15 +635,15 @@ namespace DataManagerWindow
                     {
                         // To next window -- 
                         // All functions are implemented in the next window
-                        OpenDataManagerWindow(PortName);
+                        OpenDataViewWindow(PortName);
                     }
                     else
                     {
-                        if (OpenDataManager && PortOpen && (selected == PortName))
+                        if (OpenDataView && PortOpen && (selected == PortName))
                         {
                             // To next window -- 
                             // All functions are implemented in the next window
-                            OpenDataManagerWindow(PortName);
+                            OpenDataViewWindow(PortName);
                         }
                         else
                         {
@@ -666,10 +661,10 @@ namespace DataManagerWindow
         }
 
         //----------------------------------------------------------------------------------
-        // Function name: private void OpenDataManagerWindow(string PortName)
+        // Function name: private void OpenDataViewWindow(string PortName)
         // Description: Go to the next window 
         //----------------------------------------------------------------------------------
-        private void OpenDataManagerWindow(string PortName)
+        private void OpenDataViewWindow(string PortName)
         {
             this.progressBar1.Visible = true;
             this.progressBar1.Maximum = ProgressMax;
@@ -678,20 +673,12 @@ namespace DataManagerWindow
             this.Progress.Text = progressBar1.Value.ToString() + " %"; ;
             this.progressBar1.ForeColor = Color.Blue;
             DataRequest(serialPort1);
-            bool TagsExist = false;
-            foreach (string element in DataBuffer)
-            {
-                if (element.Contains("tag"))
-                {
-                    // At least one ID Tag is connected to the hardware device
-                    TagsExist = true;
-                    break;
-                }
-            }
+            bool TagsExist = BytesIn.IsTagAvailable(HexDataStr);
+            
             // At least one ID Tag exists 
             // and reading data finished.
             int max = 0;
-            foreach (string element in DataBuffer)
+            foreach (string element in HexDataStr)
                 max += element.Length;
             this.progressBar1.Value = 1900;
             if (max > 1)
@@ -700,16 +687,12 @@ namespace DataManagerWindow
             //MessageBox.Show("Yes Message reading complete");
             if (TagsExist)
             {
-                DataManager display = new DataManager(serialPort1, PortName, DataBuffer);
+                DataViewWindow display = new DataViewWindow(serialPort1, PortName, HexDataStr);
                 this.progressBar1.Visible = false;
                 this.progressBar1.Value = 0;
                 this.Progress.Text = "";
-                // Set main window invisible
-                // this.Visible = false;
-                // display the next window
-                display.ShowDialog();
-                // close the main window
-                // this.Close();
+                // open DataViewWindow
+                display.ShowDialog(); 
             }
             else
             {
@@ -817,6 +800,16 @@ namespace DataManagerWindow
         }
 
         private void pictureBox2_Click(object sender, EventArgs e)
+        {
+            // Not implemented
+        }
+
+        private void pictureBox1_Click_2(object sender, EventArgs e)
+        {
+            // Not implemented
+        }
+
+        private void pictureBox1_Click_3(object sender, EventArgs e)
         {
             // Not implemented
         }
