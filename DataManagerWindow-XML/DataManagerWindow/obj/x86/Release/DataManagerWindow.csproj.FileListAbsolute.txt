@@ -1,0 +1,8 @@
+C:\Users\Arun\Desktop\Fall2014\Senior Design\MainGUI\DataManagerWindow\DataManagerWindow\bin\Release\DataManagerWindow.exe
+C:\Users\Arun\Desktop\Fall2014\Senior Design\MainGUI\DataManagerWindow\DataManagerWindow\bin\Release\DataManagerWindow.pdb
+C:\Users\Arun\Desktop\Fall2014\Senior Design\MainGUI\DataManagerWindow\DataManagerWindow\obj\x86\Release\DataManagerWindow.DataView.resources
+C:\Users\Arun\Desktop\Fall2014\Senior Design\MainGUI\DataManagerWindow\DataManagerWindow\obj\x86\Release\DataManagerWindow.MainForm.resources
+C:\Users\Arun\Desktop\Fall2014\Senior Design\MainGUI\DataManagerWindow\DataManagerWindow\obj\x86\Release\DataManagerWindow.Properties.Resources.resources
+C:\Users\Arun\Desktop\Fall2014\Senior Design\MainGUI\DataManagerWindow\DataManagerWindow\obj\x86\Release\DataManagerWindow.csproj.GenerateResource.Cache
+C:\Users\Arun\Desktop\Fall2014\Senior Design\MainGUI\DataManagerWindow\DataManagerWindow\obj\x86\Release\DataManagerWindow.exe
+C:\Users\Arun\Desktop\Fall2014\Senior Design\MainGUI\DataManagerWindow\DataManagerWindow\obj\x86\Release\DataManagerWindow.pdb
